@@ -1,0 +1,58 @@
+{
+  "name": "netarch-3d",
+  "productName": "NetArch 3D",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@flaticon/flaticon-uicons": "^3.3.1",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "check2d": "^9.36.4",
+    "lucide-react": "^0.544.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-scripts": "^5.0.1",
+    "react-server-dom-webpack": "^19.2.4",
+    "three": "^0.180.0",
+    "web-vitals": "^2.1.4"
+  },
+  "main": "electron/main.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "concurrently \"npm run react-start\" \"npm run electron-start\"",
+    "react-start": "react-scripts start",
+    "electron-start": "wait-on http://localhost:3000 && cross-env ELECTRON_START_URL=http://localhost:3000 electron .",
+    "build": "react-scripts build",
+    "electron-build": "npm run build && electron ."
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.13",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^38.1.2",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.1",
+    "wait-on": "^9.0.0"
+  }
+}

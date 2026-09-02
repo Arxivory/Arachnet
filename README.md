@@ -1,47 +1,109 @@
-# NetArch-3D
+# ArachNet (formerly NetArch-3D)
 
-> **A Spatially-Aware Network Design and Simulation Platform**
+> **A GNN-Assisted, Spatially-Aware Digital Twin Platform for Enterprise LAN & WLAN Topology Optimization**
 
-<img src="public/NetArch-Preview.png" alt="NetArch Preview">
+ArachNet evolves the original 3D network design concept into a research-driven, GNN-powered Network Digital Twin (NDT). While traditional 2D schematic tools (like Packet Tracer or Visio) calculate distances across flat Euclidean planes and ignore vertical risers, ceiling plenums, and structural walls, ArachNet ingests native multi-floor 3D CAD/BIM geometry (`.dwg`, `.ifc`) and models the environment as a **Heterogeneous Spatial Graph**.
 
-NetArch-3D is a high-fidelity network designer and simulator designed to bridge the gap between abstract 2D logical diagrams and 3D physical constraints. Inspired by the architecture of professional CAD tools like Sketchup and SolidWorks, it allows network engineers to validate designs within a realistic 3D environment, preventing costly physical deployment errors.
-
-## Project Overview
-
-Traditional network tools often ignore spatial reality. NetArch-3D integrates **CAD-based modeling** with **functional network logic**, allowing users to define rectangular/polygonal domains (campuses, offices) and place networking hardware with centimeter-level precision.
-
-### Key Features
-
-- **Dual-Mode Workflow:** Toggle between **Logical Mode** (topology mapping) and **Physical Mode** (3D spatial placement).
-- **Spatially-Aware Simulation:** Real-time connectivity testing that accounts for physical cable lengths and environmental boundaries (Walls/Rooms).
-- **Hierarchical Navigation:** Navigate through a site-folder structure to manage complex environments.
-- **Undo/Redo Command System:** Robust history management for non-destructive design editing.
+By applying Relational Graph Convolutional Networks (R-GCN) and Heterogeneous Graph Transformers (HGT), ArachNet dynamically optimizes physical cabling paths and wireless access point placements in milliseconds, strictly enforcing IEEE 802.3 distance limits, NEC 40% conduit fill ratios, and RF material attenuation constraints.
 
 ---
 
-## Tech Stack
+## Thesis Core Concepts & Innovations
 
-- **Frontend Library:** React JS
-- **3D Engine:** Three JS (WebGL)
-- **Desktop Container:** Electron JS
+ArachNet moves beyond basic CAD-style network editing by introducing a spatial deep learning pipeline:
 
----
-
-## Setup & Installation
-
-Follow these steps to get your development environment running:
-
-**Step 1:** Clone the repository.\
-**Step 2:** Head to the '**master**' branch to run the recent and latest update\
-**Step 3:** enter `npm install` or `npm i` to install dependencies on the terminal.\
-**Step 4:** To run the software, enter `npm run start` for development mode (software will run on browser), on the other hand, enter `npm run electron-build` for production mode (software will run on the dedicated container using electron).\
-**Step 5:** If there are any issues regarding running the software, run these commands in your terminal in order: \
-`Remove-Item -Recurse -Force node_modules`\
-`Remove-Item package-lock.json`\
-`npm install`
-
-**Note:** The software is currently on development mode so it is better to run it in the browser for smooth flows using `npm run start` command for now. For a better 3D experience, please enable GPU acceleration on your browser.
+- **Heterogeneous Spatial Graph Formulation ($G = (V, E, X, Z)$):**
+  - **Node Types ($V$):** Active Devices (Switches, APs), Structural Junctions (Conduit elbows, risers, tray intersections), and 3D Wireless Coverage Grids.
+  - **Edge Types ($E$):** Physical Pathway Segments (Conduits, trays) and Ray-Cast Wireless Propagation Paths.
+- **Constrained Multi-Objective Optimization ($\mathcal{L}_{total}$):**
+  Uses a continuous, differentiable penalty function to jointly optimize topology layout while eliminating severe physical engineering violations:
+  - **IEEE 802.3 100m Cat6 Limit ($\mathcal{L}_{distance}$):** Enforces a hard quadratic penalty for cable runs exceeding the strict 100-meter copper channel ceiling.
+  - **NEC Chapter 9 Conduit Fill ($\mathcal{L}_{capacity}$):** Prevents physical tray/conduit overcrowding by enforcing the 40% maximum fill capacity rule.
+  - **RF Attenuation & RSSI Target ($\mathcal{L}_{coverage}$):** Incorporates ITU-R P.1238 ray-cast material attenuation (e.g., concrete shear walls, glass) to eliminate coverage dead zones below **-65 dBm**.
+  - **Power-over-Ethernet Budget ($\mathcal{L}_{poe}$):** Balances active powered devices (PDs) against maximum distribution switch wattage capacities (IEEE 802.3bt).
+- **Sub-50ms Inference Latency:** Replaces heavy, super-linear deterministic search algorithm $O(|E| + |V|\log|V|)$ like 3D $A^*$ with a single forward GNN link-prediction pass $O(L \cdot |E|)$ for real-time, interactive BIM updates.
+- **Bidirectional Digital Twin Synchronization:** Uses active SNMP polling and SSH socket streaming to achieve real-time co-simulation and telemetry mirroring between the 3D viewport and physical switch stacks or virtualized testbeds (EVE-NG / GNS3).
 
 ---
 
-Designed by BSCS3A students for the Software Engineering course.
+## System Architecture & Tech Stack
+
+                    ┌───────────────────────────────┐
+                    │       3D CAD / BIM Input      │
+                    │         (.DWG / .IFC)         │
+                    └───────────────┬───────────────┘
+                                    │
+                                    ▼
+        ┌─────────────────────────────────────────────────┐
+        │              FRONTEND VIEWPORT & UX             │
+        │                                                 │
+        │  React JS  │  Three.js / WebGL  │  Electron JS  │
+        │                                                 │
+        │  • 3D CAD/BIM visualization                     │
+        │  • Interactive topology & spatial navigation    │
+        │  • Network state / device visualization         │
+        └───────────────────────┬─────────────────────────┘
+                                ▲
+                                │
+                 Bidirectional WebSockets / REST API
+                                │
+                                ▼
+        ┌─────────────────────────────────────────────────┐
+        │              GNN REASONING ENGINE               │
+        │                                                 │
+        │  Python  │  PyTorch Geometric  │  FastAPI       │
+        │                                                 │
+        │  • R-GCN / HGT graph reasoning                  │
+        │  • Spatial & relational representation learning │
+        │  • Topology inference                           │
+        │  • Network state reasoning                      │
+        └───────────────────────┬─────────────────────────┘
+                                ▲
+                                │
+              Southbound Telemetry / Control Interface
+                                │
+             ┌──────────────────┼──────────────────┐
+             │                  │                  │
+             ▼                  ▼                  ▼
+          SNMP              NETCONF              SSH
+             │                  │                  │
+             └──────────────────┼──────────────────┘
+                                │
+                                ▼
+        ┌─────────────────────────────────────────────────┐
+        │          PHYSICAL HARDWARE / CO-SIMULATION      │
+        │                                                 │
+        │     Physical Network Devices                   │
+        │     EVE-NG                                     │
+        │     GNS3                                        │
+        │                                                 │
+        │  PySNMP  │  Paramiko  │  EVE-NG/GNS3 APIs      │
+        └─────────────────────────────────────────────────┘
+
+---
+
+## Setup & Installation (Soon)
+
+### Prerequisites
+
+- **Node.js:** v18.x or higher
+- **Python:** v3.10 or higher
+- **NVIDIA GPU:** Recommended with CUDA support for fast GNN inference and WebGL GPU acceleration.
+
+## Empirical Evaluation & Metrics
+
+ArachNet is evaluated across a dataset of 36 multi-floor CAD/BIM blueprints using four core Key Performance Indicators (KPIs):
+
+| Metric                         | Target / Description                                           | Baseline Comparison                              |
+| :----------------------------- | :------------------------------------------------------------- | :----------------------------------------------- |
+| Violation Reduction Rate (VRR) | % reduction in hidden Cat6 Ethernet runs exceeding > 100m      | vs. Flat 2D Euclidean Estimation                 |
+| Cabling Material Savings       | Linear meters saved and local cost efficiency in PHP           | vs. 2D Euclidean & Deterministic 3D A\*          |
+| Inference Latency ($t_{exec}$) | < 50 ms execution time for dynamic topology re-computation     | vs. Super-linear 3D A\* search                   |
+| Co-Sim Sync Speed ($t_{sync}$) | Round-trip telemetry polling & rendering delay in milliseconds | Evaluated against physical switch stack / EVE-NG |
+
+## Thesis Research Context
+
+Originally NetArch from our Software Engineering Course, now designed and developed as part of an undergraduate research thesis exploring GNN-Assisted, Spatially-Aware Digital Twins for Enterprise Local Area Network Topology Optimization.
+
+- Theoretical Framework: Design Science Research Methodology (DSRM), Heterogeneous Spatial Graph Theory, State-Space Search Complexity, Non-Convex Multi-Objective Optimization.
+- Statistical Validation: Evaluated using the Non-Parametric Wilcoxon Signed-Rank Test ($\alpha = 0.05$).

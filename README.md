@@ -12,7 +12,7 @@ By applying Relational Graph Convolutional Networks (R-GCN) and Heterogeneous Gr
 
 ArachNet moves beyond basic CAD-style network editing by introducing a spatial deep learning pipeline:
 
-- **Heterogeneous Spatial Graph Formulation ($G = (V, E, X, Z)$):**
+- **Heterogeneous Spatial Graph Formulation (G = (V, E, X, Z)):**
   - **Node Types ($V$):** Active Devices (Switches, APs), Structural Junctions (Conduit elbows, risers, tray intersections), and 3D Wireless Coverage Grids.
   - **Edge Types ($E$):** Physical Pathway Segments (Conduits, trays) and Ray-Cast Wireless Propagation Paths.
 - **Constrained Multi-Objective Optimization ($\mathcal{L}_{total}$):**

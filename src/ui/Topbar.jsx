@@ -6,7 +6,7 @@ export default function Topbar() {
   const topbarRef = useRef(null);
 
   const menuItems = {
-    File: ["New Project", "Open...", "Save", "Import BIM", "Export"],
+    File: ["New Project", "Open...", "Save", "Import BIM File", "Export"],
     Edit: ["Undo", "Redo", "Cut", "Copy", "Paste"],
     View: ["Zoom In", "Zoom Out", "Reset View", "Toggle Grid"],
     Tools: ["Measure", "Calculate", "Settings"]

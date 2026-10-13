@@ -1,6 +1,6 @@
 # ArachNet (formerly NetArch-3D)
 
-> **A GNN-Assisted, Spatially-Aware Digital Twin Platform for Enterprise LAN & WLAN Topology Optimization**
+> **A GNN-Assisted, Spatially-Aware Digital Twin Platform for Enterprise LAN & WLAN Design**
 
 ArachNet evolves the original 3D network design concept into a research-driven, GNN-powered Network Digital Twin (NDT). While traditional 2D schematic tools (like Packet Tracer or Visio) calculate distances across flat Euclidean planes and ignore vertical risers, ceiling plenums, and structural walls, ArachNet ingests native multi-floor 3D CAD/BIM geometry (`.dwg`, `.ifc`) and models the environment as a **Heterogeneous Spatial Graph**.
 

@@ -73,11 +73,11 @@ ArachNet moves beyond basic CAD-style network editing by introducing a spatial d
         ┌─────────────────────────────────────────────────┐
         │          PHYSICAL HARDWARE / CO-SIMULATION      │
         │                                                 │
-        │     Physical Network Devices                   │
-        │     EVE-NG                                     │
+        │     Physical Network Devices                    │
+        │     EVE-NG                                      │
         │     GNS3                                        │
         │                                                 │
-        │  PySNMP  │  Paramiko  │  EVE-NG/GNS3 APIs      │
+        │  PySNMP  │  Paramiko  │  EVE-NG/GNS3 APIs       │
         └─────────────────────────────────────────────────┘
 
 ---

@@ -89,7 +89,7 @@ export default function Toolbar() {
             <Play size={16} /> Simulate
           </button>
         </div>
-        <span className="toolbar-label">Network Tools</span>
+        <span className="toolbar-label">Network</span>
       </div>
     </div>
   );

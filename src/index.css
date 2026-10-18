@@ -441,8 +441,7 @@ html,
 
 .hierarchy-panel h3 {
   font-weight: 600;
-  margin-bottom: 6px;
-  background-color: #ffffff;
+  font-size: 14px;
 }
 
 .hierarchy-panel ul {

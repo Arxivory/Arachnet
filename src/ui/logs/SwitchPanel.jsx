@@ -16,6 +16,12 @@ const SwitchPanel = ({ activeTab, setActiveTab }) => {
       >
         Simulation
       </button>
+
+      <button
+        className="switch-btn"
+      >
+        Digital Twin
+      </button>
     </div>
   );
 };

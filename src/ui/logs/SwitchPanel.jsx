@@ -1,5 +1,3 @@
-import React from "react";
-
 const SwitchPanel = ({ activeTab, setActiveTab }) => {
   return (
     <div className="switch-panel">

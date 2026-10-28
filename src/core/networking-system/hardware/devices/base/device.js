@@ -24,6 +24,7 @@ export class Device {
     this.hardwareProfile = hardwareProfile ? structuredClone(hardwareProfile) : null;
     this.ports = new Map();
     this.interfaces = new Map();
+    this.receivedFrames = [];
   }
 
   addPort(port) {

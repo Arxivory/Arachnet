@@ -1,4 +1,6 @@
 import { EthernetLink } from "../definitions/ethernet-link";
+import { EventBus } from "./event-bus";
+import { NetworkEmulator } from "./network-emulator";
 
 export class NetworkTopology {
   constructor({ devices = [], links = [] } = {}) {
@@ -48,6 +50,13 @@ export class NetworkTopology {
     throw new Error(`Network link references unknown physical port: ${portId}`);
   }
 
+  findDeviceForPort(portId) {
+    for (const device of this.devices.values()) {
+      if (device.ports.has(portId)) return device;
+    }
+    throw new Error(`Unknown physical port: ${portId}`);
+  }
+
   toJSON() {
     return {
       devices: [...this.devices.values()].map((device) => device.toJSON()),
@@ -59,7 +68,8 @@ export class NetworkTopology {
 export class NetworkManager {
   constructor(topology = new NetworkTopology()) {
     this.topology = topology;
-    this.listeners = new Map();
+    this.eventBus = new EventBus();
+    this.emulator = new NetworkEmulator(this);
     for (const link of topology.links.values()) {
       this.reconcilePortLink(this.findPort(link.portAId), link.status === "up");
       this.syncInterfaceState(this.findPort(link.portAId));
@@ -126,6 +136,13 @@ export class NetworkManager {
     if (!link) throw new Error(`Unknown network link: ${linkId}`);
     const portA = this.findPort(link.portAId);
     const portB = this.findPort(link.portBId);
+    for (const port of [portA, portB]) {
+      const owner = this.findDeviceForPort(port.id);
+      if (owner.kind === "switch") {
+        owner.camTable.removePort(port.id);
+        owner.spanningTree.removePort(port.id);
+      }
+    }
     portA.detachLink();
     portB.detachLink();
     this.topology.links.delete(linkId);
@@ -141,6 +158,22 @@ export class NetworkManager {
       if (port) return port;
     }
     throw new Error(`Unknown physical port: ${portId}`);
+  }
+
+  findDeviceForPort(portId) {
+    return this.topology.findDeviceForPort(portId);
+  }
+
+  sendFrame(sourcePortId, frame) {
+    return this.emulator.sendFrame(sourcePortId, frame);
+  }
+
+  sendIpv4(deviceId, interfaceId, packet, options) {
+    return this.emulator.sendIpv4(deviceId, interfaceId, packet, options);
+  }
+
+  retryArp() {
+    return this.emulator.retryArp();
   }
 
   setPortEnabled(portId, enabled) {
@@ -222,14 +255,10 @@ export class NetworkManager {
   }
 
   on(eventName, listener) {
-    if (typeof listener !== "function") throw new TypeError("listener must be a function.");
-    const listeners = this.listeners.get(eventName) ?? new Set();
-    listeners.add(listener);
-    this.listeners.set(eventName, listeners);
-    return () => listeners.delete(listener);
+    return this.eventBus.on(eventName, listener);
   }
 
   emit(eventName, detail) {
-    for (const listener of this.listeners.get(eventName) ?? []) listener(detail);
+    this.eventBus.emit(eventName, detail);
   }
 }

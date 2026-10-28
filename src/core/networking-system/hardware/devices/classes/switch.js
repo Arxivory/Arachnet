@@ -1,5 +1,7 @@
 import { Device } from "../base/device";
 import { PoeManager } from "../../components/power/poe/poe-manager";
+import { CamTable } from "../../../engine/state/cam-table";
+import { SpanningTree } from "../../../engine/protocols/l2/stp";
 
 export class Switch extends Device {
   constructor({ switchingMode = "layer2", poeBudgetWatts = 0, ...options }) {
@@ -12,6 +14,8 @@ export class Switch extends Device {
     this.poeManager = new PoeManager({ budgetWatts: poeBudgetWatts });
     this.vlans = new Map([[1, { id: 1, name: "default" }]]);
     this.portModes = new Map();
+    this.camTable = new CamTable();
+    this.spanningTree = new SpanningTree({ bridgeId: this.id });
   }
 
   addVlan(id, name) {
@@ -69,6 +73,13 @@ export class Switch extends Device {
       poeManager: this.poeManager.toJSON(),
       vlans: [...this.vlans.values()].map((vlan) => ({ ...vlan })),
       portModes: Object.fromEntries(this.portModes),
+      camTable: this.camTable.toJSON(),
+      spanningTree: {
+        rootId: this.spanningTree.rootId,
+        rootPathCost: this.spanningTree.rootPathCost,
+        rootPortId: this.spanningTree.rootPortId,
+        portStates: Object.fromEntries(this.spanningTree.portStates),
+      },
     };
   }
 }

@@ -32,13 +32,28 @@ power ceilings for IEEE 802.3af/at/bt. Hardware power budgets and port counts
 must come from the selected device profile rather than guessed model-family
 defaults.
 
-Switch VLAN configuration and static-route configuration are model data only.
-Switch VLAN configuration and static-route configuration are network
-configuration data. CAM learning/aging, STP behavior, frame forwarding, IPv4
-forwarding, ARP retry behavior, and ICMP responses are implemented as distinct
-deterministic emulation logic; configured state must not be mistaken for
-simulated protocol behavior. Twin synchronization/session orchestration is also
-separate from the device and protocol model.
+Switch VLAN and static-route configuration are consumed by the Layer 2/3
+emulation engine. Endpoint interfaces can specify a `defaultGateway` for
+off-subnet IPv4 traffic.
+## Layer 2/3 emulation
+
+`NetworkManager` owns the topology and exposes `sendFrame`, `sendIpv4`, and
+`retryArp`. It wires physical links to the frame-processing engines and emits
+network events. Ethernet switching supports VLAN access/trunk ingress and
+egress, VLAN-scoped CAM learning/aging, flooding/unicast forwarding, and
+configurable STP port states. Routers build connected/static routes, perform
+longest-prefix forwarding, resolve next hops through ARP, decrement TTL, and
+generate ICMP echo, time-exceeded, and destination-unreachable messages.
+
+The simulator is synchronous and deterministic for a given topology/config.
+ARP retry intervals are driven by explicit `retryArp()` calls. STP models BPDU
+root selection and explicit port states; it does not run a real-time STP timer
+or implement every Cisco feature. It is not a vendor IOS implementation.
+Packet checksums, FCS calculation, TCP/UDP transport behavior, IPv6, wireless
+association, and physical-device control are not currently simulated.
+
+This behavior is functional simulator logic, separate from a real network
+integration or twin synchronization.
 
 ## Cisco alignment
 

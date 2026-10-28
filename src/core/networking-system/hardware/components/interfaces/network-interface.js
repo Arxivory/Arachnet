@@ -1,7 +1,16 @@
 const LINE_STATUSES = new Set(["up", "down"]);
 
 export class NetworkInterface {
-  constructor({ id, name, physicalPortId = null, adminEnabled = true, lineStatus = "down", macAddress = null, ipv4Addresses = [] }) {
+  constructor({
+    id,
+    name,
+    physicalPortId = null,
+    adminEnabled = true,
+    lineStatus = "down",
+    macAddress = null,
+    ipv4Addresses = [],
+    defaultGateway = null,
+  }) {
     if (!id || !name) {
       throw new TypeError("A network interface requires an id and name.");
     }
@@ -15,6 +24,7 @@ export class NetworkInterface {
     this.lineStatus = lineStatus;
     this.macAddress = macAddress;
     this.ipv4Addresses = [...ipv4Addresses];
+    this.defaultGateway = defaultGateway;
   }
 
   isOperational(physicalPort) {

@@ -1,8 +1,34 @@
 import { Undo2, Redo2 } from "lucide-react";
-import {Network, RefreshCw, File, FileDown, FilePlus, Save, MousePointer, Trash2, Copy,
-Building, Play} from "lucide-react";
+import {
+  Network,
+  RefreshCw,
+  File,
+  FileDown,
+  FilePlus,
+  Save,
+  MousePointer,
+  Trash2,
+  Copy,
+  Building,
+  Play,
+  LayoutGrid,
+  Map,
+  Box,
+  Compass,
+} from "lucide-react";
+import { VIEW_MODES } from "../../core/rendering-engine";
+import { useViewState } from "../Workspace/useViewState";
 
-export default function Toolbar() {
+const MODES = [
+  { id: VIEW_MODES.LOGICAL, label: "Logical", Icon: LayoutGrid },
+  { id: VIEW_MODES.PHYSICAL, label: "Physical", Icon: Map },
+  { id: VIEW_MODES.CAD, label: "3D", Icon: Box },
+  { id: VIEW_MODES.INTERACTIVE, label: "Interactive", Icon: Compass },
+];
+
+export default function Toolbar({ viewController }) {
+  const viewState = useViewState(viewController);
+
   return (
     <div className="toolbar">
       <div className="toolbar-group">
@@ -59,18 +85,17 @@ export default function Toolbar() {
 
       <div className="toolbar-group">
         <div className="toolbar-row">
-          <button className="toolbar-btn">
-            Logical
-          </button>
-          <button className="toolbar-btn">
-            Physical
-          </button>
-          <button className="toolbar-btn">
-            3D
-          </button>
-          <button className="toolbar-btn">
-            Interactive
-          </button>
+          {MODES.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              type="button"
+              className={`toolbar-btn${viewState.mode === id ? " active" : ""}`}
+              aria-pressed={viewState.mode === id}
+              onClick={() => viewController.setMode(id)}
+            >
+              <Icon size={15} />{label}
+            </button>
+          ))}
         </div>
         <span className="toolbar-label">Modes</span>
       </div>

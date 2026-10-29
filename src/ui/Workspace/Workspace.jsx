@@ -5,6 +5,7 @@ import LogicalModeView from "./LogicalModeView";
 import PhysicalModeView from "./PhysicalModeView";
 import CadModeView from "./CadModeView";
 import InteractiveModeView from "./InteractiveModeView";
+import ConnectionsPanel from "./ConnectionsPanel";
 import { DEMO_FLOORS } from "./demo-data";
 import { useViewState } from "./useViewState";
 
@@ -22,6 +23,9 @@ export default function Workspace({
   onSelectDevice,
   onMoveDevice,
   onAddDevice,
+  onConnectEthernet,
+  onDisconnectEthernet,
+  onSetLinkStatus,
 }) {
   const viewState = useViewState(viewController);
   const floor = DEMO_FLOORS.find(({ id }) => id === viewState.floorId) ?? DEMO_FLOORS[0];
@@ -63,14 +67,27 @@ export default function Workspace({
           />
         </div>
         <div className="workspace-mode-container" hidden={viewState.mode !== VIEW_MODES.CAD}>
-          <CadModeView floor={floor} devices={floorDevices} active={viewState.mode === VIEW_MODES.CAD} />
+          <CadModeView
+            floor={floor}
+            devices={floorDevices}
+            links={links}
+            active={viewState.mode === VIEW_MODES.CAD}
+          />
         </div>
         <div className="workspace-mode-container" hidden={viewState.mode !== VIEW_MODES.INTERACTIVE}>
           <InteractiveModeView
             devices={devices}
+            links={links}
             active={viewState.mode === VIEW_MODES.INTERACTIVE}
           />
         </div>
+        <ConnectionsPanel
+          devices={devices}
+          links={links}
+          onConnect={onConnectEthernet}
+          onDisconnect={onDisconnectEthernet}
+          onSetLinkStatus={onSetLinkStatus}
+        />
       </section>
       {viewState.floorBased && (
         <FloorNavigator

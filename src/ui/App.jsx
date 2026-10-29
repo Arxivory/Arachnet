@@ -50,6 +50,11 @@ export default function App() {
               stateManager.moveDeviceInView(deviceId, coordinateSpace, position)}
             onAddDevice={(profileId, floorId, placement) =>
               stateManager.addDeviceFromProfile(profileId, floorId, placement)}
+            onConnectEthernet={(portAId, portBId, options) =>
+              stateManager.connectEthernet(portAId, portBId, options)}
+            onDisconnectEthernet={(linkId) => stateManager.disconnectEthernet(linkId)}
+            onSetLinkStatus={(linkId, status) =>
+              stateManager.setEthernetLinkStatus(linkId, status)}
           />
           <ConsoleSimulationLogs />
         </div>
@@ -64,9 +69,12 @@ export default function App() {
           <PropertiesPanel
             device={selectedDevice}
             floors={stateManager.floors}
+            links={applicationState.links}
             onRename={(deviceId, name) => stateManager.renameDevice(deviceId, name)}
             onPositionChange={(deviceId, axis, value) =>
               stateManager.setDevicePosition(deviceId, axis, value)}
+            onInterfaceAdminChange={(deviceId, interfaceId, enabled) =>
+              stateManager.setInterfaceAdminEnabled(deviceId, interfaceId, enabled)}
           />
         </div>
       </div>

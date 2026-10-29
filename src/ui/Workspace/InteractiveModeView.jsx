@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { FpsController, MultiFloorWorld } from "../../core/rendering-engine";
-import { createDemoFloorModel, DEMO_FLOORS } from "./demo-data";
+import { createDemoFloorModel, createDemoLinkModel, DEMO_FLOORS } from "./demo-data";
 
 function disposeObject(object) {
+  if (!object) return;
   object.traverse((child) => {
     child.geometry?.dispose?.();
     if (Array.isArray(child.material)) child.material.forEach((material) => material.dispose());
@@ -11,14 +12,17 @@ function disposeObject(object) {
   });
 }
 
-export default function InteractiveModeView({ devices, active = false }) {
+export default function InteractiveModeView({ devices, links = [], active = false }) {
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const worldRef = useRef(null);
   const controllerRef = useRef(null);
   const modelsRef = useRef([]);
+  const linkModelRef = useRef(null);
   const devicesRef = useRef(devices);
+  const linksRef = useRef(links);
   devicesRef.current = devices;
+  linksRef.current = links;
   const [renderError, setRenderError] = useState("");
   const deviceGeometryKey = useMemo(() => JSON.stringify(devices.map((device) => ({
     id: device.id,
@@ -26,6 +30,11 @@ export default function InteractiveModeView({ devices, active = false }) {
     floorId: device.floorId,
     position: device.transform?.position ?? device.position,
   }))), [devices]);
+  const linkGeometryKey = useMemo(() => JSON.stringify(links.map((link) => ({
+    id: link.id,
+    status: link.status,
+    routePoints: link.routePoints,
+  }))), [links]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -74,9 +83,12 @@ export default function InteractiveModeView({ devices, active = false }) {
 
     return () => {
       controllerRef.current?.stop();
+      if (linkModelRef.current) worldRef.current?.scene.remove(linkModelRef.current);
       worldRef.current?.dispose();
       modelsRef.current.forEach(disposeObject);
       modelsRef.current = [];
+      disposeObject(linkModelRef.current);
+      linkModelRef.current = null;
       rendererRef.current?.dispose();
       rendererRef.current = null;
       worldRef.current = null;
@@ -98,11 +110,15 @@ export default function InteractiveModeView({ devices, active = false }) {
       });
       modelsRef.current.forEach(disposeObject);
       modelsRef.current = nextModels;
+      if (linkModelRef.current) world.scene.remove(linkModelRef.current);
+      disposeObject(linkModelRef.current);
+      linkModelRef.current = createDemoLinkModel(linksRef.current);
+      world.addGlobalContent(linkModelRef.current);
       setRenderError("");
     } catch (error) {
       setRenderError(error.message);
     }
-  }, [deviceGeometryKey]);
+  }, [deviceGeometryKey, linkGeometryKey]);
 
   useEffect(() => {
     if (!active || !worldRef.current || !controllerRef.current) return undefined;

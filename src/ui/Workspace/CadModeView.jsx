@@ -27,14 +27,16 @@ function restoreCamera(renderer, state) {
   renderer.render();
 }
 
-export default function CadModeView({ floor, devices }) {
+export default function CadModeView({ floor, devices, links = [] }) {
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const currentFloorId = useRef(null);
   const cameraByFloor = useRef(new Map());
   const modelRef = useRef(null);
   const devicesRef = useRef(devices);
+  const linksRef = useRef(links);
   devicesRef.current = devices;
+  linksRef.current = links;
   const [renderError, setRenderError] = useState("");
   const deviceGeometryKey = useMemo(() => JSON.stringify(devices.map((device) => ({
     id: device.id,
@@ -42,6 +44,11 @@ export default function CadModeView({ floor, devices }) {
     floorId: device.floorId,
     position: device.transform?.position ?? device.position,
   }))), [devices]);
+  const linkGeometryKey = useMemo(() => JSON.stringify(links.map((link) => ({
+    id: link.id,
+    status: link.status,
+    routePoints: link.routePoints,
+  }))), [links]);
 
   useEffect(() => {
     try {
@@ -67,7 +74,7 @@ export default function CadModeView({ floor, devices }) {
     }
 
     const previousModel = modelRef.current;
-    const model = createDemoFloorModel(floor.id, devicesRef.current);
+    const model = createDemoFloorModel(floor.id, devicesRef.current, linksRef.current);
     renderer.setFloor(floor.id, [{ floorId: floor.id, object3D: model }], { frame: false });
     const savedCamera = cameraByFloor.current.get(floor.id);
     if (savedCamera) restoreCamera(renderer, savedCamera);
@@ -76,7 +83,7 @@ export default function CadModeView({ floor, devices }) {
     currentFloorId.current = floor.id;
     disposeObject(previousModel);
     setRenderError("");
-  }, [deviceGeometryKey, floor]);
+  }, [deviceGeometryKey, floor, linkGeometryKey]);
 
   return (
     <div className="render-surface cad-surface">

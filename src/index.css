@@ -2900,4 +2900,255 @@ html,
     flex-basis: auto;
   }
 }
+
+.connections-panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 8;
+  width: min(320px, calc(100vw - 32px));
+  color: #1e293b;
+  font-size: 11px;
+}
+
+.connections-toggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 1px solid rgba(148, 163, 184, 0.65);
+  border-radius: 7px;
+  background: rgba(248, 250, 252, 0.92);
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.12);
+  color: #334155;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.connections-count {
+  display: inline-flex;
+  min-width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 10px;
+}
+
+.connections-content {
+  max-height: min(72vh, 590px);
+  margin-top: 6px;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid rgba(148, 163, 184, 0.65);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.96);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.connections-content form,
+.connections-content label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.connections-content form {
+  gap: 8px;
+}
+
+.connections-content label {
+  min-width: 0;
+  color: #64748b;
+  font-size: 10px;
+}
+
+.connections-content select,
+.connections-content input {
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  padding: 3px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+}
+
+.connection-cable-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.connection-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 30px;
+  border: 1px solid #1d4ed8;
+  border-radius: 5px;
+  background: #2563eb;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+}
+
+.connection-submit:disabled {
+  border-color: #cbd5e1;
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.connection-hint,
+.connection-message {
+  margin: 0;
+  color: #64748b;
+  font-size: 10px;
+}
+
+.connection-message.error {
+  margin-top: 8px;
+  color: #b91c1c;
+}
+
+.connection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.connection-row {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) 26px 26px;
+  align-items: center;
+  gap: 7px;
+  padding-top: 6px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.connection-status {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.connection-status.status-up {
+  background: #0284c7;
+}
+
+.connection-status.status-err-disabled {
+  background: #dc2626;
+}
+
+.connection-description {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connection-description small {
+  color: #64748b;
+  font-size: 9px;
+}
+
+.connection-method-note {
+  margin: 0 0 2px;
+  color: #64748b;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.connection-remove {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.connection-remove:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.port-inventory {
+  margin-top: 14px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 8px;
+}
+
+.port-inventory summary {
+  color: #334155;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.port-inventory ul {
+  display: flex;
+  max-height: 260px;
+  flex-direction: column;
+  gap: 7px;
+  margin: 8px 0 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.port-inventory li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  color: #64748b;
+  font-size: 10px;
+}
+
+.port-inventory li strong {
+  color: #334155;
+}
+
+.properties-panel .interface-admin-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.properties-panel .interface-admin-toggle input {
+  width: auto;
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .connections-panel {
+    top: 54px;
+    right: 8px;
+    width: min(300px, calc(100vw - 16px));
+  }
+}
    

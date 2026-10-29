@@ -131,6 +131,41 @@ describe("network hardware and topology", () => {
     expect(manager.getUnverifiedPhysicalLinks().map((link) => link.id)).toEqual(["unrouted-link"]);
   });
 
+  test("connects matching optical ports and excludes fiber from the copper channel limit", () => {
+    const first = new Switch({
+      id: "sw-1",
+      name: "Distribution switch",
+      profileId: "catalyst-9200l-24t-4g",
+    });
+    const second = new Switch({
+      id: "sw-2",
+      name: "Core switch",
+      profileId: "catalyst-9200l-24t-4g",
+    });
+    const portA = [...first.ports.values()].find(({ media }) => media === "fiber");
+    const portB = [...second.ports.values()].find(({ media }) => media === "fiber");
+    const manager = new NetworkManager(new NetworkTopology({ devices: [first, second] }));
+
+    const link = manager.connectEthernet({
+      id: "fiber-link",
+      portAId: portA.id,
+      portBId: portB.id,
+      cableType: "om3",
+      routePoints: [[0, 0, 0], [150, 0, 0]],
+    });
+
+    expect(link).toMatchObject({
+      media: "fiber",
+      cableType: "om3",
+      negotiatedSpeedMbps: 1000,
+      distanceComplianceStatus: "not-applicable",
+    });
+    const fiberInterface = [...first.interfaces.values()].find(
+      (networkInterface) => networkInterface.physicalPortId === portA.id
+    );
+    expect(fiberInterface.isOperational(portA)).toBe(true);
+  });
+
   test("enforces the configured PoE budget and IEEE standard limit", () => {
     const poe = new PoeManager({ budgetWatts: 30, standard: "802.3at" });
     poe.allocate("ap-1", 15);

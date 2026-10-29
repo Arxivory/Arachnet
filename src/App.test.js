@@ -45,3 +45,20 @@ test("keeps hierarchy devices aligned with the selected floor", () => {
   expect(within(hierarchy).getByRole("button", { name: "Desktop PC" })).toBeInTheDocument();
   expect(within(hierarchy).queryByRole("button", { name: "C9200L-24T-4G" })).not.toBeInTheDocument();
 });
+
+test("shows bound interfaces and updates interface admin state from Properties", () => {
+  render(<App />);
+  const hierarchy = screen.getByRole("region", { name: "Hierarchy" });
+  fireEvent.click(within(hierarchy).getByRole("button", { name: "C9200L-24T-4G" }));
+  fireEvent.click(screen.getByText("Ports and interfaces (28)"));
+
+  const interfaceToggles = screen.getAllByRole("checkbox", { name: "Admin enabled" });
+  expect(interfaceToggles).toHaveLength(28);
+  expect(interfaceToggles[0]).toBeChecked();
+  fireEvent.click(interfaceToggles[0]);
+  expect(interfaceToggles[0]).not.toBeChecked();
+  expect(screen.getAllByText(/Interface: down ·/).length).toBeGreaterThan(0);
+
+  fireEvent.click(interfaceToggles[0]);
+  expect(interfaceToggles[0]).toBeChecked();
+});

@@ -16,6 +16,13 @@ describe("ApplicationStateManager", () => {
     expect(snapshot.links.every((link) => link.kind === "ethernet")).toBe(true);
     expect(snapshot.links.find(({ id }) => id === "link-core-router").floorId).toBe("floor-1");
     expect(snapshot.links.find(({ id }) => id === "link-sw2-pc").status).toBe("down");
+    expect(snapshot.links.every((link) => link.routingAlgorithm === "astar-3d")).toBe(true);
+    expect(snapshot.links.every((link) => link.conduitSegmentIds.length > 0)).toBe(true);
+    expect(snapshot.links.every((link) =>
+      link.maxConduitFillRatio > 0 && link.maxConduitFillRatio <= 0.4
+    )).toBe(true);
+    expect(snapshot.links.find(({ id }) => id === "link-core-router").planarLengthMeters)
+      .toBeLessThan(snapshot.links.find(({ id }) => id === "link-core-router").routedLengthMeters);
   });
 
   test("adds profile-backed devices and publishes changes to subscribers", () => {
@@ -62,9 +69,60 @@ describe("ApplicationStateManager", () => {
       logicalPosition: [120, 240],
     });
     expect(device.name).toBe("North Wing Router");
-    expect(device.transform.position).toEqual([4, 4, 5.2]);
+    expect(device.transform.position).toEqual([3, 3, 5.2]);
     expect(state.getSnapshot().selectedDeviceId).toBe(device.id);
     expect(listener).toHaveBeenCalledTimes(4);
+  });
+
+  test("connects actual ports and interfaces, computes separate 2D and routed 3D lengths, and releases reservations", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const first = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const second = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const portA = [...first.ports.values()][0];
+    const portB = [...second.ports.values()][0];
+    const link = state.connectEthernet(portA.id, portB.id);
+    const firstInterface = [...first.interfaces.values()][0];
+
+    expect(link.routingAlgorithm).toBe("astar-3d");
+    expect(link.routePoints).toHaveLength(link.junctionIds.length + 2);
+    expect(portA.linkId).toBe(link.id);
+    expect(firstInterface.isOperational(portA)).toBe(true);
+    expect(state.getSnapshot().links[0]).toMatchObject({
+      floorId: "floor-1",
+      planarDistanceUnit: "m",
+      endpointA: { deviceId: first.id, portId: portA.id },
+    });
+    expect(state.getSnapshot().links[0].planarLengthMeters)
+      .not.toBe(state.getSnapshot().links[0].routedLengthMeters);
+
+    state.setEthernetLinkStatus(link.id, "down");
+    expect(firstInterface.isOperational(portA)).toBe(false);
+    state.setEthernetLinkStatus(link.id, "up");
+    expect(firstInterface.isOperational(portA)).toBe(true);
+
+    state.disconnectEthernet(link.id);
+    expect(portA.linkId).toBeNull();
+    expect(firstInterface.isOperational(portA)).toBe(false);
+    expect(state.conduitRouter.reservations.has(link.id)).toBe(false);
+    expect(state.getSnapshot().links).toHaveLength(0);
+  });
+
+  test("routes cross-floor links through a riser and reroutes when a device moves in 3D", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const first = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const second = state.addDeviceFromProfile("generic-desktop-pc", "floor-3");
+    const portA = [...first.ports.values()][0];
+    const portB = [...second.ports.values()][0];
+    const link = state.connectEthernet(portA.id, portB.id);
+    const originalRoute = link.routePoints.map((point) => [...point]);
+
+    expect(link.conduitSegmentIds.some((id) => id.includes("vertical-riser"))).toBe(true);
+    expect(state.getSnapshot().links[0].planarLengthMeters).toBeNull();
+
+    state.setDevicePosition(first.id, 0, 8);
+
+    expect(link.routePoints[0]).toEqual([8, 3, 0.4]);
+    expect(link.routePoints).not.toEqual(originalRoute);
   });
 
   test("rejects unknown profiles, floors, devices, and invalid placements", () => {

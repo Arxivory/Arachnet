@@ -3,15 +3,19 @@ import { useEffect, useState } from "react";
 export default function PropertiesPanel({
   device = null,
   floors = [],
+  links = [],
   onRename,
   onPositionChange,
+  onInterfaceAdminChange,
 }) {
   const [nameError, setNameError] = useState("");
   const [draftName, setDraftName] = useState(device?.name ?? "");
+  const [interfaceError, setInterfaceError] = useState("");
 
   useEffect(() => {
     setDraftName(device?.name ?? "");
     setNameError("");
+    setInterfaceError("");
   }, [device?.id, device?.name]);
 
   if (!device) {
@@ -26,6 +30,7 @@ export default function PropertiesPanel({
 
   const floor = floors.find(({ id }) => id === device.floorId);
   const model = device.model !== "generic" ? device.model : device.kind;
+  const ports = [...device.ports.values()];
 
   return (
     <section className="properties-panel" aria-label="Properties">
@@ -75,6 +80,59 @@ export default function PropertiesPanel({
           />
         ))}
       </div>
+      <details className="port-inventory">
+        <summary>Ports and interfaces ({ports.length})</summary>
+        <ul>
+          {ports.map((port) => {
+            const networkInterface = [...device.interfaces.values()].find(
+              (item) => item.physicalPortId === port.id
+            );
+            const link = links.find(
+              (item) => item.portAId === port.id || item.portBId === port.id
+            );
+            const peer = link?.portAId === port.id ? link.endpointB : link?.endpointA;
+            return (
+              <li key={port.id}>
+                <strong>{port.name}</strong>
+                <span>
+                  Port: {port.status} · {port.media}
+                  {port.linkId ? " · occupied" : " · free"}
+                </span>
+                {networkInterface ? (
+                  <>
+                    <span>Interface: {networkInterface.lineStatus} · {networkInterface.macAddress ?? "No MAC"}</span>
+                    <label className="interface-admin-toggle">
+                      <input
+                        type="checkbox"
+                        checked={networkInterface.adminEnabled}
+                        onChange={(event) => {
+                          try {
+                            onInterfaceAdminChange?.(
+                              device.id,
+                              networkInterface.id,
+                              event.target.checked
+                            );
+                            setInterfaceError("");
+                          } catch (error) {
+                            setInterfaceError(error.message);
+                          }
+                        }}
+                      />
+                      Admin enabled
+                    </label>
+                  </>
+                ) : <span>No bound interface</span>}
+                {link && (
+                  <span>
+                    {peer?.deviceName} · {peer?.portName} · {link.negotiatedSpeedMbps} Mbps
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {interfaceError && <p className="property-error" role="alert">{interfaceError}</p>}
+      </details>
     </section>
   );
 }

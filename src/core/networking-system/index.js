@@ -13,6 +13,7 @@ export { PC } from "./hardware/devices/classes/pc";
 export { Laptop } from "./hardware/devices/classes/laptop";
 export { Server } from "./hardware/devices/classes/server";
 export { EthernetLink } from "./engine/definitions/ethernet-link";
+export { ConduitRouter } from "./engine/routing/conduit-router";
 export { EthernetFrame, ETHER_TYPE } from "./engine/definitions/frame";
 export { IPv4Packet, IP_PROTOCOL } from "./engine/definitions/packet";
 export { CamTable } from "./engine/state/cam-table";

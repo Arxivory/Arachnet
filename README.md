@@ -8,6 +8,28 @@ By applying Relational Graph Convolutional Networks (R-GCN) and Heterogeneous Gr
 
 ---
 
+## Wired Connectivity and Route Planning
+
+The current UI uses `NetworkManager` for physical Ethernet port occupancy,
+speed/duplex negotiation, interface line state, and link up/down behavior. A
+connection stores two independent route measurements:
+
+- Logical mode draws topology edges in abstract graph coordinates. Physical
+  mode draws the flat, straight-line floorplan baseline. The demo floorplan is
+  calibrated at 50 pixels per meter; imported plans need their own scale.
+- CAD and Interactive modes draw the 3D route from a structural junction graph.
+  The current deterministic A* baseline snaps endpoints to their nearest
+  junction and routes across tray/conduit/riser segments. It tracks 3D length
+  and reserves conduit cross-section against the 40% fill ceiling.
+
+The structural graph is demo fixture data, not extracted BIM geometry. The
+route is a deterministic research baseline, not a trained GNN result. BIM
+junction extraction, project-specific plan calibration, and GNN inference are
+future integration steps. Optical links use matching fiber ports and are
+excluded from the copper 100-meter channel check.
+
+---
+
 ## Thesis Core Concepts & Innovations
 
 ArachNet moves beyond basic CAD-style network editing by introducing a spatial deep learning pipeline:

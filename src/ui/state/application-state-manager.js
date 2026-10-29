@@ -1,5 +1,6 @@
 import {
   DeviceCatalog,
+  ConduitRouter,
   EthernetInterface,
   Laptop,
   NetworkManager,
@@ -16,6 +17,16 @@ import {
   DEMO_FLOORS,
   DEMO_LINK_SEEDS,
 } from "../Workspace/demo-data";
+import { createDemoConduitNetwork, DEMO_FLOORPLAN_PIXELS_PER_METER } from "../Workspace/demo-data";
+
+const DEMO_CABLE_DIAMETER_MM = 6.5;
+
+function cableAreaMm2(diameterMm) {
+  if (!Number.isFinite(diameterMm) || diameterMm <= 0) {
+    throw new TypeError("Cable diameter must be a positive number of millimeters.");
+  }
+  return Math.PI * (diameterMm / 2) ** 2;
+}
 
 const DEVICE_CLASSES = {
   switch: Switch,
@@ -84,10 +95,12 @@ export class ApplicationStateManager {
     this.floors = floors.map((floor) => ({ ...floor }));
     this.floorById = new Map(this.floors.map((floor) => [floor.id, floor]));
     this.networkManager = new NetworkManager(new NetworkTopology());
+    this.conduitRouter = new ConduitRouter(createDemoConduitNetwork(this.floors));
     this.placements = new Map();
     this.listeners = new Set();
     this.selectedDeviceId = null;
     this.nextDeviceNumber = 1;
+    this.nextLinkNumber = 1;
     this.snapshot = null;
 
     if (seedDemoTopology) this.loadDemoTopology();
@@ -134,14 +147,10 @@ export class ApplicationStateManager {
       }
       const portA = this.getNextAvailablePort(deviceA, nextPortByDeviceId);
       const portB = this.getNextAvailablePort(deviceB, nextPortByDeviceId);
-      const link = this.networkManager.connectEthernet({
+      const link = this.createPlannedLink({
         id: seedLink.id,
         portAId: portA.id,
         portBId: portB.id,
-        routePoints: [
-          [...deviceA.transform.position],
-          [...deviceB.transform.position],
-        ],
       });
       if (seedLink.status === "down") this.networkManager.setPortStatus(portA.id, "down");
       if (link.status !== seedLink.status && seedLink.status !== "down") {
@@ -178,12 +187,48 @@ export class ApplicationStateManager {
       const positionA = this.placements.get(deviceA.id)?.floorplanPosition;
       const positionB = this.placements.get(deviceB.id)?.floorplanPosition;
       const floorId = deviceA.floorId === deviceB.floorId ? deviceA.floorId : null;
+      const floorplanPoints = floorId && positionA && positionB
+        ? [[...positionA], [...positionB]]
+        : [];
+      const portA = this.networkManager.findPort(link.portAId);
+      const portB = this.networkManager.findPort(link.portBId);
+      const planarLengthMeters = floorplanPoints.length === 2
+        ? Math.hypot(
+          (positionB[0] - positionA[0]) / DEMO_FLOORPLAN_PIXELS_PER_METER,
+          (positionB[1] - positionA[1]) / DEMO_FLOORPLAN_PIXELS_PER_METER
+        )
+        : null;
+      const maxConduitFillRatio = link.conduitSegmentIds.length > 0
+        ? Math.max(...link.conduitSegmentIds.map((id) =>
+          this.conduitRouter.getSegmentFillRatio(id)
+        ))
+        : null;
       return {
         ...link,
         floorId,
-        floorplanPoints: floorId && positionA && positionB
-          ? [[...positionA], [...positionB]]
-          : [],
+        floorplanPoints,
+        planarLengthMeters,
+        planarDistanceUnit: planarLengthMeters === null ? null : "m",
+        routedLengthMeters: link.routedLengthMeters,
+        channelLengthMeters: link.channelLengthMeters,
+        distanceComplianceStatus: link.distanceComplianceStatus,
+        maxConduitFillRatio,
+        endpointA: {
+          deviceId: deviceA.id,
+          deviceName: deviceA.name,
+          portId: portA.id,
+          portName: portA.name,
+          interfaceName: [...deviceA.interfaces.values()]
+            .find((networkInterface) => networkInterface.physicalPortId === portA.id)?.name ?? null,
+        },
+        endpointB: {
+          deviceId: deviceB.id,
+          deviceName: deviceB.name,
+          portId: portB.id,
+          portName: portB.name,
+          interfaceName: [...deviceB.interfaces.values()]
+            .find((networkInterface) => networkInterface.physicalPortId === portB.id)?.name ?? null,
+        },
       };
     });
 
@@ -204,6 +249,73 @@ export class ApplicationStateManager {
       selectedDeviceId: this.selectedDeviceId,
     };
     this.listeners.forEach((listener) => listener());
+  }
+
+  worldPosition(device) {
+    const floor = this.floorById.get(device.floorId);
+    if (!floor) throw new Error(`Device ${device.id} has no known floor for spatial routing.`);
+    const [x, y, z] = device.transform.position;
+    return [x, y, z + floor.zMin];
+  }
+
+  createPlannedLink({
+    id,
+    portAId,
+    portBId,
+    cableType = "cat6",
+    cableDiameterMm = DEMO_CABLE_DIAMETER_MM,
+    status = "up",
+  }) {
+    const deviceA = this.networkManager.findDeviceForPort(portAId);
+    const deviceB = this.networkManager.findDeviceForPort(portBId);
+    const area = cableAreaMm2(cableDiameterMm);
+    const route = this.conduitRouter.route(
+      this.worldPosition(deviceA),
+      this.worldPosition(deviceB),
+      { cableAreaMm2: area }
+    );
+    this.conduitRouter.reserveRoute(id, route, area);
+    try {
+      const link = this.networkManager.connectEthernet({
+        id,
+        portAId,
+        portBId,
+        cableType,
+        routePoints: route.routePoints,
+        junctionIds: route.junctionIds,
+        conduitSegmentIds: route.segmentIds,
+        routingAlgorithm: route.algorithm,
+        cableAreaMm2: area,
+      });
+      if (status === "down") this.networkManager.setPortStatus(portAId, "down");
+      return link;
+    } catch (error) {
+      this.conduitRouter.releaseRoute(id);
+      throw error;
+    }
+  }
+
+  connectEthernet(portAId, portBId, { cableType = "cat6", cableDiameterMm = DEMO_CABLE_DIAMETER_MM } = {}) {
+    const id = `link-${this.nextLinkNumber}`;
+    const link = this.createPlannedLink({ id, portAId, portBId, cableType, cableDiameterMm });
+    this.nextLinkNumber += 1;
+    this.publish();
+    return link;
+  }
+
+  disconnectEthernet(linkId) {
+    const link = this.networkManager.disconnectEthernet(linkId);
+    this.conduitRouter.releaseRoute(linkId);
+    this.publish();
+    return link;
+  }
+
+  setEthernetLinkStatus(linkId, status) {
+    const link = this.networkManager.topology.links.get(linkId);
+    if (!link) throw new Error(`Unknown network link: ${linkId}`);
+    this.networkManager.setPortStatus(link.portAId, status);
+    this.publish();
+    return link;
   }
 
   selectDevice(deviceId) {
@@ -232,18 +344,19 @@ export class ApplicationStateManager {
     const name = existingModelCount > 0
       ? `${profile.model} ${existingModelCount + 1}`
       : profile.model;
+    const spatialPosition = this.nextSpatialPosition(floorId);
     const device = createInstance(profileId, {
       id,
       name,
       floorId,
-      position: [4, 4, 0.4],
+      position: spatialPosition,
     });
 
     this.networkManager.addDevice(device);
     this.placements.set(device.id, {
       floorplanPosition: floorplanPosition
         ? floorplanPosition
-        : this.nextFloorplanPosition(floorId),
+        : this.nextFloorplanPosition(spatialPosition),
       logicalPosition,
     });
     this.selectedDeviceId = device.id;
@@ -251,10 +364,17 @@ export class ApplicationStateManager {
     return device;
   }
 
-  nextFloorplanPosition(floorId) {
+  nextFloorplanPosition(spatialPosition) {
+    return [
+      spatialPosition[0] * DEMO_FLOORPLAN_PIXELS_PER_METER,
+      spatialPosition[1] * DEMO_FLOORPLAN_PIXELS_PER_METER,
+    ];
+  }
+
+  nextSpatialPosition(floorId) {
     const count = [...this.networkManager.topology.devices.values()]
-      .filter((device) => device.floorId === floorId).length - 1;
-    return [180 + (count % 3) * 280, 150 + Math.floor(count / 3) * 190];
+      .filter((device) => device.floorId === floorId).length;
+    return [3 + (count % 4) * 4, 3 + Math.floor(count / 4) * 3, 0.4];
   }
 
   moveDeviceInView(deviceId, coordinateSpace, position) {
@@ -289,7 +409,72 @@ export class ApplicationStateManager {
       throw new TypeError("Device position requires a valid axis and finite value.");
     }
     if (device.transform.position[axis] === value) return;
+    const previousPosition = [...device.transform.position];
     device.transform.position[axis] = value;
+    try {
+      this.rerouteLinksForDevice(deviceId);
+    } catch (error) {
+      device.transform.position = previousPosition;
+      throw error;
+    }
     this.publish();
+  }
+
+  setInterfaceAdminEnabled(deviceId, interfaceId, enabled) {
+    const networkInterface = this.networkManager.setInterfaceAdminEnabled(
+      deviceId,
+      interfaceId,
+      enabled
+    );
+    this.publish();
+    return networkInterface;
+  }
+
+  rerouteLinksForDevice(deviceId) {
+    const connectedLinks = [...this.networkManager.topology.links.values()].filter((link) =>
+      this.networkManager.findDeviceForPort(link.portAId).id === deviceId ||
+      this.networkManager.findDeviceForPort(link.portBId).id === deviceId
+    );
+    if (connectedLinks.length === 0) return;
+
+    const previousRoutes = connectedLinks.map((link) => ({
+      link,
+      routePoints: link.routePoints.map((point) => [...point]),
+      junctionIds: [...link.junctionIds],
+      conduitSegmentIds: [...link.conduitSegmentIds],
+      routingAlgorithm: link.routingAlgorithm,
+    }));
+    connectedLinks.forEach(({ id }) => this.conduitRouter.releaseRoute(id));
+
+    try {
+      for (const link of connectedLinks) {
+        const deviceA = this.networkManager.findDeviceForPort(link.portAId);
+        const deviceB = this.networkManager.findDeviceForPort(link.portBId);
+        const route = this.conduitRouter.route(
+          this.worldPosition(deviceA),
+          this.worldPosition(deviceB),
+          { cableAreaMm2: link.cableAreaMm2 }
+        );
+        this.conduitRouter.reserveRoute(link.id, route, link.cableAreaMm2);
+        link.routePoints = route.routePoints;
+        link.junctionIds = route.junctionIds;
+        link.conduitSegmentIds = route.segmentIds;
+        link.routingAlgorithm = route.algorithm;
+      }
+    } catch (error) {
+      connectedLinks.forEach(({ id }) => this.conduitRouter.releaseRoute(id));
+      for (const previous of previousRoutes) {
+        previous.link.routePoints = previous.routePoints;
+        previous.link.junctionIds = previous.junctionIds;
+        previous.link.conduitSegmentIds = previous.conduitSegmentIds;
+        previous.link.routingAlgorithm = previous.routingAlgorithm;
+        this.conduitRouter.reserveRoute(
+          previous.link.id,
+          { segmentIds: previous.conduitSegmentIds },
+          previous.link.cableAreaMm2
+        );
+      }
+      throw error;
+    }
   }
 }

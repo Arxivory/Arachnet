@@ -37,7 +37,11 @@ export class Physical2DRenderer {
         if (index === 0) context.moveTo(x, y);
         else context.lineTo(x, y);
       });
-      context.strokeStyle = link.status === "up" ? "#0284c7" : "#94a3b8";
+      context.strokeStyle = link.status === "up"
+        ? "#0284c7"
+        : link.status === "err-disabled"
+          ? "#dc2626"
+          : "#94a3b8";
       context.lineWidth = 2;
       context.stroke();
     }

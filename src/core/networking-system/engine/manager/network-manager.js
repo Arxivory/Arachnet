@@ -89,14 +89,24 @@ export class NetworkManager {
     portBId,
     cableType = "cat6",
     routePoints = [],
+    junctionIds = [],
+    conduitSegmentIds = [],
+    routingAlgorithm = null,
+    cableAreaMm2 = 0,
     patchCordLengthMeters = 0,
   }) {
     const portA = this.findPort(portAId);
     const portB = this.findPort(portBId);
     if (portA === portB) throw new Error("An Ethernet link must connect two different ports.");
     if (portA.linkId || portB.linkId) throw new Error("A physical port can connect to only one cable.");
-    if (portA.media !== "copper" || portB.media !== "copper") {
-      throw new Error("Copper Ethernet cable requires copper-capable ports at both ends.");
+    if (portA.media !== portB.media || !["copper", "fiber"].includes(portA.media)) {
+      throw new Error("Ethernet links require ports with matching copper or fiber media.");
+    }
+    const copperCable = ["cat5e", "cat6", "cat6a"].includes(cableType);
+    const fiberCable = ["om3", "om4", "os2"].includes(cableType);
+    if ((portA.media === "copper" && !copperCable) ||
+      (portA.media === "fiber" && !fiberCable)) {
+      throw new Error(`Cable type ${cableType} is not compatible with ${portA.media} ports.`);
     }
     if (!portA.enabled || !portB.enabled) {
       throw new Error("Both physical ports must be enabled before connecting a cable.");
@@ -115,6 +125,10 @@ export class NetworkManager {
       portBId,
       cableType,
       routePoints,
+      junctionIds,
+      conduitSegmentIds,
+      routingAlgorithm,
+      cableAreaMm2,
       patchCordLengthMeters,
       status: "up",
       negotiatedSpeedMbps,

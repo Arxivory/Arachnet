@@ -33,7 +33,11 @@ export class LogicalRenderer {
       context.beginPath();
       context.moveTo(source.x, source.y);
       context.lineTo(target.x, target.y);
-      context.strokeStyle = edge.status === "up" ? "#64748b" : "#cbd5e1";
+      context.strokeStyle = edge.status === "up"
+        ? "#64748b"
+        : edge.status === "err-disabled"
+          ? "#dc2626"
+          : "#cbd5e1";
       context.lineWidth = 2;
       context.stroke();
     }

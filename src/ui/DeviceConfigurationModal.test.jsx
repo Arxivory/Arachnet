@@ -34,9 +34,10 @@ test("configures a live interface and sends an ICMP ping through the emulated li
   expect(dialog).toBeInTheDocument();
   expect(dialog.parentElement.parentElement).toBe(document.body);
 
-  fireEvent.change(screen.getByLabelText("IPv4 address/prefix"), {
-    target: { value: "192.168.10.10/24" },
+  fireEvent.change(screen.getByLabelText("IPv4 address"), {
+    target: { value: "192.168.10.10" },
   });
+  fireEvent.change(screen.getByLabelText("Prefix length"), { target: { value: "24" } });
   fireEvent.click(screen.getByRole("button", { name: "Apply interface" }));
   expect(sourceInterface.ipv4Addresses).toEqual(["192.168.10.10/24"]);
 

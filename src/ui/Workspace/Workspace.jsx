@@ -51,6 +51,7 @@ export default function Workspace({
             onSelectDevice={onSelectDevice}
             onMoveDevice={onMoveDevice}
             onAddDevice={(profileId, placement) => onAddDevice(profileId, floor.id, placement)}
+            onConnectEthernet={onConnectEthernet}
           />
         </div>
         <div className="workspace-mode-container" hidden={viewState.mode !== VIEW_MODES.PHYSICAL}>
@@ -81,13 +82,13 @@ export default function Workspace({
             active={viewState.mode === VIEW_MODES.INTERACTIVE}
           />
         </div>
-        <ConnectionsPanel
-          devices={devices}
-          links={links}
-          onConnect={onConnectEthernet}
-          onDisconnect={onDisconnectEthernet}
-          onSetLinkStatus={onSetLinkStatus}
-        />
+        {viewState.floorBased && (
+          <ConnectionsPanel
+            links={floorLinks}
+            onDisconnect={onDisconnectEthernet}
+            onSetLinkStatus={onSetLinkStatus}
+          />
+        )}
       </section>
       {viewState.floorBased && (
         <FloorNavigator

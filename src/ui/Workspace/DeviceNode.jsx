@@ -26,6 +26,7 @@ export default function DeviceNode({
   interactionMode = "select",
   onSelect,
   onMove,
+  onCablePick,
 }) {
   const Icon = DEVICE_ICONS[device.kind] ?? Network;
   const model = device.model && device.model !== "generic"
@@ -34,6 +35,12 @@ export default function DeviceNode({
   const dragStart = useRef(null);
 
   function handlePointerDown(event) {
+    if (interactionMode === "cable" && (event.button == null || event.button === 0)) {
+      event.preventDefault();
+      event.stopPropagation();
+      onCablePick?.(device.id);
+      return;
+    }
     if (interactionMode !== "select" || (event.button != null && event.button !== 0)) return;
     event.preventDefault();
     event.stopPropagation();

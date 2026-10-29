@@ -249,14 +249,21 @@ export class NetworkManager {
   }
 
   syncInterfaceState(port) {
+    let owner = null;
     for (const device of this.topology.devices.values()) {
       if (!device.ports.has(port.id)) continue;
+      owner = device;
       for (const networkInterface of device.interfaces.values()) {
         if (networkInterface.physicalPortId === port.id) {
           networkInterface.lineStatus = port.status === "up" && networkInterface.adminEnabled ? "up" : "down";
         }
       }
-      return;
+      break;
+    }
+    if (owner?.kind === "switch") {
+      for (const vlanId of owner.vlanInterfaces.keys()) {
+        owner.syncVlanInterfaceState(vlanId);
+      }
     }
   }
 

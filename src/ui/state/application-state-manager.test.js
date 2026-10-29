@@ -156,6 +156,35 @@ describe("ApplicationStateManager", () => {
       .toBe("timeout");
   });
 
+  test("assigns an IPv4 address and prefix to a switch SVI and answers a host ping", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const host = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const networkSwitch = state.addDeviceFromProfile("catalyst-9200l-24t-4g", "floor-1");
+    const hostInterface = [...host.interfaces.values()][0];
+    const switchPort = [...networkSwitch.ports.values()][0];
+    state.connectEthernet([...host.ports.values()][0].id, switchPort.id);
+    state.configureInterface(host.id, hostInterface.id, {
+      ipv4Addresses: ["192.168.10.10/24"],
+    });
+
+    state.configureSwitch(networkSwitch.id, {
+      vlans: [{ id: 1, name: "default" }],
+      portModes: [...networkSwitch.ports.keys()].map((portId) => ({
+        portId,
+        mode: "access",
+        accessVlan: 1,
+      })),
+      sviAddresses: [{ vlanId: 1, address: "192.168.10.1/24" }],
+      stpPriority: 32768,
+    });
+
+    const svi = networkSwitch.vlanInterfaces.get(1);
+    expect(svi.ipv4Addresses).toEqual(["192.168.10.1/24"]);
+    expect(svi.lineStatus).toBe("up");
+    expect(state.ping(host.id, hostInterface.id, "192.168.10.1", { count: 1 })[0])
+      .toMatchObject({ status: "reply", responderIp: "192.168.10.1" });
+  });
+
   test("validates IP configuration and installs router static routes in the FIB", () => {
     const state = new ApplicationStateManager({ seedDemoTopology: false });
     const pc = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");

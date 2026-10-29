@@ -483,7 +483,7 @@ export class ApplicationStateManager {
     return networkInterface;
   }
 
-  configureSwitch(deviceId, { vlans, portModes, stpPriority }) {
+  configureSwitch(deviceId, { vlans, portModes, sviAddresses = [], stpPriority }) {
     const device = this.networkManager.topology.devices.get(deviceId);
     if (!device) throw new Error(`Unknown network device: ${deviceId}`);
     if (device.kind !== "switch") throw new TypeError("VLAN and STP settings require a switch.");
@@ -504,6 +504,31 @@ export class ApplicationStateManager {
       vlanMap.set(vlan.id, { id: vlan.id, name: vlan.name.trim() });
     }
     if (!vlanMap.has(1)) throw new TypeError("VLAN 1 must remain configured.");
+
+    const sviMap = new Map();
+    for (const setting of sviAddresses) {
+      if (!vlanMap.has(setting.vlanId) || sviMap.has(setting.vlanId)) {
+        throw new TypeError(`Invalid or duplicate SVI VLAN: ${setting.vlanId}`);
+      }
+      if (!setting.address) continue;
+      const parsedAddress = parseIpv4Cidr(setting.address);
+      if (parsedAddress.prefixLength === 0) {
+        throw new TypeError("An SVI prefix length must be from 1 through 32.");
+      }
+      sviMap.set(setting.vlanId, `${parsedAddress.address}/${parsedAddress.prefixLength}`);
+    }
+    const sviIps = new Set([...sviMap.values()].map((address) => address.split("/")[0]));
+    if (sviIps.size !== sviMap.size) {
+      throw new TypeError("Switch SVIs cannot have duplicate IPv4 addresses.");
+    }
+    for (const otherDevice of this.networkManager.topology.devices.values()) {
+      for (const networkInterface of otherDevice.interfaces.values()) {
+        if (otherDevice === device && networkInterface.vlanId != null) continue;
+        if (networkInterface.ipv4Addresses.some((address) => sviIps.has(address.split("/")[0]))) {
+          throw new TypeError("An IPv4 address is already configured on another interface.");
+        }
+      }
+    }
 
     const modeMap = new Map();
     if (portModes.length !== device.ports.size) {
@@ -534,8 +559,17 @@ export class ApplicationStateManager {
       }
     }
 
+    for (const vlanId of device.vlans.keys()) {
+      if (!vlanMap.has(vlanId)) device.removeVlan(vlanId);
+    }
+    for (const vlan of vlanMap.values()) {
+      device.vlans.set(vlan.id, vlan);
+      device.ensureVlanInterface(vlan.id);
+      device.configureSvi(vlan.id, sviMap.get(vlan.id) ?? "");
+    }
     device.vlans = vlanMap;
     device.portModes = modeMap;
+    for (const vlanId of device.vlanInterfaces.keys()) device.syncVlanInterfaceState(vlanId);
     device.spanningTree.priority = stpPriority;
     device.spanningTree.recomputeRoot();
     this.networkManager.emit("switch-configuration-changed", { device });

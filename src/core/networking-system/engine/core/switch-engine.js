@@ -1,4 +1,6 @@
-import { ETHER_TYPE } from "../definitions/frame";
+import { EthernetFrame, ETHER_TYPE } from "../definitions/frame";
+import { IP_PROTOCOL, IPv4Packet } from "../definitions/packet";
+import { ICMP_TYPE, Icmp } from "../protocols/l3/icmp";
 import { isBroadcastMac, isMulticastMac } from "../utils/ipv4";
 import { Vlan8021Q } from "../protocols/l2/vlan-8021q";
 
@@ -25,6 +27,41 @@ export class SwitchEngine {
     if (vlanFrame.etherType === ETHER_TYPE.BPDU && vlanFrame.payload?.kind === "bpdu") {
       switchDevice.spanningTree.receiveBpdu(ingressPortId, vlanFrame.payload.bpdu);
       return { outputs: [], dropped: false, reason: "bpdu-processed" };
+    }
+    switchDevice.syncVlanInterfaceState(vlanFrame.vlanId);
+    const svi = switchDevice.vlanInterfaces.get(vlanFrame.vlanId);
+    if (svi?.isOperational(null) && svi.ipv4Addresses.length > 0) {
+      if (vlanFrame.etherType === ETHER_TYPE.ARP &&
+        vlanFrame.payload?.operation === "request" &&
+        vlanFrame.payload.targetIp === svi.ipv4Addresses[0].split("/")[0]) {
+        return {
+          outputs: [this.sviResponse(switchDevice, ingressPortId, vlanFrame, svi, {
+            etherType: ETHER_TYPE.ARP,
+            payload: {
+              operation: "reply",
+              senderIp: vlanFrame.payload.targetIp,
+              senderMac: svi.macAddress,
+              targetIp: vlanFrame.payload.senderIp,
+              targetMac: vlanFrame.payload.senderMac,
+            },
+          })],
+          dropped: false,
+          reason: "svi-arp-reply",
+        };
+      }
+      if (vlanFrame.etherType === ETHER_TYPE.IPV4 &&
+        vlanFrame.destinationMac === svi.macAddress &&
+        vlanFrame.payload instanceof IPv4Packet &&
+        vlanFrame.payload.destinationIp === svi.ipv4Addresses[0].split("/")[0] &&
+        vlanFrame.payload.protocol === IP_PROTOCOL.ICMP &&
+        vlanFrame.payload.payload?.type === ICMP_TYPE.ECHO_REQUEST) {
+        const reply = Icmp.echoReply(vlanFrame.payload, vlanFrame.payload.destinationIp);
+        const response = this.sviResponse(switchDevice, ingressPortId, vlanFrame, svi, {
+          etherType: ETHER_TYPE.IPV4,
+          payload: reply,
+        });
+        return { outputs: [response], dropped: false, reason: "svi-icmp-reply" };
+      }
     }
 
     if (!isMulticastMac(vlanFrame.sourceMac)) {
@@ -56,6 +93,20 @@ export class SwitchEngine {
       outputs,
       dropped: Boolean(learnedPort && outputs.length === 0),
       reason: outputs.length ? null : learnedPort ? "destination-egress-unavailable" : "no-eligible-egress",
+    };
+  }
+
+  sviResponse(switchDevice, portId, ingressFrame, svi, { etherType, payload }) {
+    const response = new EthernetFrame({
+      sourceMac: svi.macAddress,
+      destinationMac: ingressFrame.sourceMac,
+      etherType,
+      vlanId: ingressFrame.vlanId,
+      payload,
+    });
+    return {
+      portId,
+      frame: Vlan8021Q.egressFrame(switchDevice, portId, response),
     };
   }
 }

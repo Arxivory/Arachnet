@@ -13,6 +13,18 @@ function getPortMode(device, portId) {
   return device.portModes?.get(portId) ?? { mode: "access", accessVlan: 1 };
 }
 
+function splitAddress(address) {
+  const [ipv4Address = "", prefixLength = "24"] = address?.split("/") ?? [];
+  return { ipv4Address, prefixLength };
+}
+
+function subnetMask(prefixValue) {
+  const prefix = Number(prefixValue);
+  if (!Number.isInteger(prefix) || prefix < 0 || prefix > 32) return "";
+  const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+  return [24, 16, 8, 0].map((shift) => (mask >>> shift) & 255).join(".");
+}
+
 export default function DeviceConfigurationModal({
   device,
   pingResults = [],
@@ -25,6 +37,7 @@ export default function DeviceConfigurationModal({
   const [activeTab, setActiveTab] = useState("interfaces");
   const [interfaceDrafts, setInterfaceDrafts] = useState({});
   const [vlans, setVlans] = useState([]);
+  const [sviAddresses, setSviAddresses] = useState([]);
   const [portModes, setPortModes] = useState([]);
   const [stpPriority, setStpPriority] = useState(32768);
   const [routes, setRoutes] = useState([]);
@@ -47,11 +60,16 @@ export default function DeviceConfigurationModal({
     setInterfaceDrafts(Object.fromEntries([...device.interfaces.values()].map((networkInterface) => [
       networkInterface.id,
       {
-        ipv4Addresses: networkInterface.ipv4Addresses.join("\n"),
+        ...splitAddress(networkInterface.ipv4Addresses[0] ?? ""),
+        secondaryAddresses: networkInterface.ipv4Addresses.slice(1).join("\n"),
         defaultGateway: networkInterface.defaultGateway ?? "",
       },
     ])));
     setVlans([...device.vlans?.values?.() ?? []].map((vlan) => ({ ...vlan })));
+    setSviAddresses([...device.vlanInterfaces?.values?.() ?? []].map((networkInterface) => ({
+      vlanId: networkInterface.vlanId,
+      ...splitAddress(networkInterface.ipv4Addresses[0] ?? ""),
+    })));
     setPortModes([...device.ports.values()].map((port) => ({
       portId: port.id,
       ...getPortMode(device, port.id),
@@ -82,8 +100,12 @@ export default function DeviceConfigurationModal({
   function applyInterface(networkInterface) {
     try {
       const draft = interfaceDrafts[networkInterface.id];
+      const ipv4Addresses = draft.ipv4Address.trim()
+        ? [`${draft.ipv4Address.trim()}/${Number(draft.prefixLength)}`]
+        : [];
+      ipv4Addresses.push(...draft.secondaryAddresses.split(/[\s,]+/).filter(Boolean));
       onApplyInterface?.(device.id, networkInterface.id, {
-        ipv4Addresses: draft.ipv4Addresses.split(/[\s,]+/).filter(Boolean),
+        ipv4Addresses,
         defaultGateway: draft.defaultGateway,
       });
       setError("");
@@ -112,7 +134,15 @@ export default function DeviceConfigurationModal({
 
   function applySwitch() {
     try {
-      onApplySwitch?.(device.id, { vlans, portModes, stpPriority: Number(stpPriority) });
+      onApplySwitch?.(device.id, {
+        vlans,
+        portModes,
+        sviAddresses: sviAddresses.map(({ vlanId, ipv4Address, prefixLength }) => ({
+          vlanId,
+          address: ipv4Address.trim() ? `${ipv4Address.trim()}/${Number(prefixLength)}` : "",
+        })),
+        stpPriority: Number(stpPriority),
+      });
       setError("");
     } catch (applyError) {
       setError(applyError.message);
@@ -204,7 +234,12 @@ export default function DeviceConfigurationModal({
                   : "Configure static IPv4 addresses and the on-link default gateway used by packet forwarding."}
               </p>
               {[...device.interfaces.values()].map((networkInterface) => {
-                const draft = interfaceDrafts[networkInterface.id] ?? { ipv4Addresses: "", defaultGateway: "" };
+                const draft = interfaceDrafts[networkInterface.id] ?? {
+                  ipv4Address: "",
+                  prefixLength: "24",
+                  secondaryAddresses: "",
+                  defaultGateway: "",
+                };
                 return (
                   <form
                     className="device-config-card"
@@ -218,13 +253,38 @@ export default function DeviceConfigurationModal({
                     <span className="device-config-help">
                       {networkInterface.lineStatus} · {networkInterface.macAddress ?? "No MAC address"}
                     </span>
+                    <div className="device-config-address-row">
+                      <label>
+                        IPv4 address
+                        <input
+                          inputMode="decimal"
+                          value={draft.ipv4Address}
+                          placeholder="192.168.10.10"
+                          onChange={(event) => updateInterfaceDraft(networkInterface.id, "ipv4Address", event.target.value)}
+                        />
+                      </label>
+                      <label>
+                        Prefix length
+                        <input
+                          type="number"
+                          min="1"
+                          max="32"
+                          value={draft.prefixLength}
+                          onChange={(event) => updateInterfaceDraft(networkInterface.id, "prefixLength", event.target.value)}
+                        />
+                      </label>
+                      <label>
+                        Subnet mask
+                        <input value={subnetMask(draft.prefixLength)} readOnly aria-label={`${networkInterface.name} subnet mask`} />
+                      </label>
+                    </div>
                     <label>
-                      IPv4 address/prefix
+                      Secondary IPv4 addresses (CIDR, optional)
                       <textarea
                         rows={2}
-                        value={draft.ipv4Addresses}
-                        placeholder={"192.168.10.10/24"}
-                        onChange={(event) => updateInterfaceDraft(networkInterface.id, "ipv4Addresses", event.target.value)}
+                        value={draft.secondaryAddresses}
+                        placeholder={"192.168.11.10/24"}
+                        onChange={(event) => updateInterfaceDraft(networkInterface.id, "secondaryAddresses", event.target.value)}
                       />
                     </label>
                     {device.kind !== "router" && (
@@ -250,43 +310,90 @@ export default function DeviceConfigurationModal({
               <div className="device-config-card">
                 <h3>VLAN database</h3>
                 {vlans.map((vlan, index) => (
-                  <div className="device-config-vlan-row" key={`${vlan.id}-${index}`}>
-                    <label>
-                      VLAN ID
-                      <input
-                        type="number"
-                        min="1"
-                        max="4094"
-                        value={vlan.id}
-                        onChange={(event) => setVlans((current) => current.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, id: Number(event.target.value) } : item
-                        ))}
-                      />
-                    </label>
-                    <label>
-                      Name
-                      <input
-                        value={vlan.name}
-                        onChange={(event) => setVlans((current) => current.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, name: event.target.value } : item
-                        ))}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      aria-label={`Remove VLAN ${vlan.id}`}
-                      disabled={vlan.id === 1}
-                      onClick={() => setVlans((current) => current.filter((_, itemIndex) => itemIndex !== index))}
-                    >
-                      Remove
-                    </button>
+                  <div className="device-config-vlan-block" key={`${vlan.id}-${index}`}>
+                    <div className="device-config-vlan-row">
+                      <label>
+                        VLAN ID
+                        <input
+                          type="number"
+                          min="1"
+                          max="4094"
+                          value={vlan.id}
+                          onChange={(event) => {
+                            const nextId = Number(event.target.value);
+                            setVlans((current) => current.map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, id: nextId } : item
+                            ));
+                            setSviAddresses((current) => current.map((item) =>
+                              item.vlanId === vlan.id ? { ...item, vlanId: nextId } : item
+                            ));
+                          }}
+                        />
+                      </label>
+                      <label>
+                        Name
+                        <input
+                          value={vlan.name}
+                          onChange={(event) => setVlans((current) => current.map((item, itemIndex) =>
+                            itemIndex === index ? { ...item, name: event.target.value } : item
+                          ))}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        aria-label={`Remove VLAN ${vlan.id}`}
+                        disabled={vlan.id === 1}
+                        onClick={() => {
+                          setVlans((current) => current.filter((_, itemIndex) => itemIndex !== index));
+                          setSviAddresses((current) => current.filter((item) => item.vlanId !== vlan.id));
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div className="device-config-address-row">
+                      <label>
+                        SVI IPv4 address
+                        <input
+                          inputMode="decimal"
+                          value={sviAddresses.find((item) => item.vlanId === vlan.id)?.ipv4Address ?? ""}
+                          placeholder="192.168.10.1"
+                          onChange={(event) => setSviAddresses((current) => current.map((item) =>
+                            item.vlanId === vlan.id ? { ...item, ipv4Address: event.target.value } : item
+                          ))}
+                        />
+                      </label>
+                      <label>
+                        Prefix length
+                        <input
+                          type="number"
+                          min="1"
+                          max="32"
+                          value={sviAddresses.find((item) => item.vlanId === vlan.id)?.prefixLength ?? "24"}
+                          onChange={(event) => setSviAddresses((current) => current.map((item) =>
+                            item.vlanId === vlan.id ? { ...item, prefixLength: event.target.value } : item
+                          ))}
+                        />
+                      </label>
+                      <label>
+                        Subnet mask
+                        <input
+                          value={subnetMask(sviAddresses.find((item) => item.vlanId === vlan.id)?.prefixLength ?? 24)}
+                          readOnly
+                          aria-label={`VLAN ${vlan.id} subnet mask`}
+                        />
+                      </label>
+                    </div>
                   </div>
                 ))}
                 <button type="button" onClick={() => {
                   const usedIds = new Set(vlans.map(({ id }) => id));
                   let id = 2;
                   while (usedIds.has(id) && id <= 4094) id += 1;
-                  if (id <= 4094) setVlans((current) => [...current, { id, name: `VLAN ${id}` }]);
+                  if (id <= 4094) {
+                    setVlans((current) => [...current, { id, name: `VLAN ${id}` }]);
+                    setSviAddresses((current) => [...current, { vlanId: id, ipv4Address: "", prefixLength: "24" }]);
+                  }
                 }}>
                   Add VLAN
                 </button>

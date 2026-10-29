@@ -948,6 +948,19 @@ html,
   font-size: 10px;
 }
 
+.device-config-address-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.device-config-vlan-block {
+  display: grid;
+  gap: 9px;
+  padding: 8px 0;
+  border-top: 1px solid #f1f5f9;
+}
+
 .device-config-card input,
 .device-config-card textarea,
 .device-config-card select,
@@ -1094,6 +1107,14 @@ html,
 
   .device-config-port-row {
     grid-template-columns: minmax(100px, 1fr) 90px minmax(0, 1fr);
+  }
+
+  .device-config-address-row {
+    grid-template-columns: minmax(0, 1fr) 78px;
+  }
+
+  .device-config-address-row label:last-child {
+    grid-column: 1 / -1;
   }
 }
 
@@ -3202,9 +3223,14 @@ html,
 .connections-panel {
   position: absolute;
   top: 12px;
+  bottom: 12px;
   right: 12px;
   z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   width: min(320px, calc(100vw - 32px));
+  pointer-events: none;
   color: #1e293b;
   font-size: 11px;
 }
@@ -3224,6 +3250,8 @@ html,
   cursor: pointer;
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
+  flex: 0 0 auto;
+  pointer-events: auto;
 }
 
 .connections-count {
@@ -3239,7 +3267,9 @@ html,
 }
 
 .connections-content {
-  max-height: min(72vh, 590px);
+  max-height: calc(100% - 40px);
+  min-height: 0;
+  flex: 0 1 auto;
   margin-top: 6px;
   padding: 10px;
   overflow: auto;
@@ -3249,6 +3279,7 @@ html,
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
+  pointer-events: auto;
 }
 
 .connections-content form,
@@ -3372,6 +3403,130 @@ html,
   color: #64748b;
   font-size: 9px;
   line-height: 1.4;
+}
+
+.logical-links-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.logical-links-overlay line {
+  cursor: pointer;
+  pointer-events: stroke;
+}
+
+.logical-link-port-indicator {
+  fill: rgb(37 99 235 / 10%);
+  stroke: #2563eb;
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.logical-link-hover-label rect {
+  fill: #0f172a;
+  fill-opacity: 0.94;
+  stroke: #cbd5e1;
+  stroke-width: 1;
+}
+
+.logical-link-hover-label text {
+  fill: #f8fafc;
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.logical-cable-tool {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 7;
+  display: flex;
+  align-items: flex-end;
+  gap: 7px;
+  max-width: min(420px, calc(100% - 28px));
+}
+
+.logical-cable-tool > button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  border-radius: 6px;
+  background: rgba(248, 250, 252, 0.96);
+  color: #334155;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.12);
+  font: inherit;
+  cursor: pointer;
+}
+
+.logical-cable-tool > button.is-active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
+.logical-cable-status,
+.logical-port-picker {
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  border-radius: 6px;
+  background: rgba(248, 250, 252, 0.97);
+  color: #334155;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.14);
+  font-size: 10px;
+}
+
+.logical-cable-status {
+  padding: 8px 10px;
+}
+
+.logical-port-picker {
+  position: absolute;
+  z-index: 8;
+  display: flex;
+  width: min(200px, calc(100% - 20px));
+  max-height: min(300px, calc(100% - 40px));
+  flex-direction: column;
+  gap: 4px;
+  padding: 7px;
+  overflow: auto;
+}
+
+.logical-port-picker strong {
+  padding: 3px 4px 5px;
+}
+
+.logical-port-picker button {
+  padding: 6px 7px;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.logical-port-picker button:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.logical-port-picker .logical-port-picker-close {
+  margin-top: 3px;
+  color: #64748b;
+}
+
+.cable-mode-active .network-device-node {
+  cursor: crosshair;
 }
 
 .connection-remove {

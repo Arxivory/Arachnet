@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import LogicalModeView from "./LogicalModeView";
 import PhysicalModeView from "./PhysicalModeView";
+import { ApplicationStateManager } from "../state/application-state-manager";
 
 const canvasContext = {
   setTransform: jest.fn(),
@@ -78,4 +79,49 @@ test("renders Physical nodes as library-style device tiles and supports pan mode
   expect(container.querySelector(".physical-content")).toHaveStyle({
     transform: "translate(10px, 10px)",
   });
+});
+
+test("connects devices with the Logical cable tool by selecting free ports", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const first = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const second = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const snapshot = state.getSnapshot();
+    const { container } = render(
+      <LogicalModeView
+        devices={snapshot.devices}
+        links={snapshot.links}
+        placements={snapshot.placements}
+        onConnectEthernet={(portAId, portBId, options) =>
+          state.connectEthernet(portAId, portBId, options)}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Cable" }));
+    const deviceNodes = container.querySelectorAll(".network-device-node");
+    fireEvent.pointerDown(deviceNodes[0], { button: 0, pointerId: 1 });
+    fireEvent.click(screen.getByRole("button", { name: /GigabitEthernet0\/0 · copper/ }));
+    fireEvent.pointerDown(deviceNodes[1], { button: 0, pointerId: 2 });
+    fireEvent.click(screen.getByRole("button", { name: /GigabitEthernet0\/0 · copper/ }));
+
+    expect(state.getSnapshot().links).toHaveLength(1);
+    expect([...first.ports.values()][0].linkId).toBe(state.getSnapshot().links[0].id);
+    expect([...second.ports.values()][0].linkId).toBe(state.getSnapshot().links[0].id);
+    expect(container.querySelector(".logical-cable-status")).toHaveTextContent("Cable connected");
+});
+
+test("shows port indicators when hovering a logical cable", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const first = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const second = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    state.connectEthernet([...first.ports.values()][0].id, [...second.ports.values()][0].id);
+    const snapshot = state.getSnapshot();
+    const { container } = render(
+      <LogicalModeView devices={snapshot.devices} links={snapshot.links} placements={snapshot.placements} />
+    );
+    const linkHitArea = container.querySelector(".logical-links-overlay line");
+
+    fireEvent.mouseEnter(linkHitArea);
+
+    expect(container.querySelectorAll(".logical-link-port-indicator")).toHaveLength(2);
+    expect(container.querySelector(".logical-link-hover-label")).toHaveTextContent("GigabitEthernet0/0");
 });

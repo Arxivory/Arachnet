@@ -383,6 +383,43 @@ html,
   font: inherit;
 }
 
+.network-device-node-container {
+  position: absolute;
+  z-index: 1;
+  width: 70px;
+  height: 68px;
+  transform: translate(-50%, -50%);
+}
+
+.network-device-node-container .network-device-node {
+  position: relative;
+  inset: auto;
+  transform: none;
+}
+
+.cross-floor-device-indicator {
+  position: absolute;
+  z-index: 2;
+  top: -8px;
+  right: -14px;
+  min-width: 29px;
+  height: 20px;
+  padding: 0 5px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.cross-floor-device-indicator:hover {
+  background: #dbeafe;
+}
+
 .network-device-node:active {
   cursor: grabbing;
 }
@@ -3233,6 +3270,95 @@ html,
   pointer-events: none;
   color: #1e293b;
   font-size: 11px;
+}
+
+.cross-floor-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.18);
+  pointer-events: auto;
+}
+
+.cross-floor-dialog {
+  width: min(340px, 100%);
+  max-height: min(420px, 80%);
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.98);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
+  color: #1e293b;
+}
+
+.cross-floor-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.cross-floor-dialog header div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cross-floor-dialog header span,
+.cross-floor-dialog-list small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.cross-floor-dialog header button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+}
+
+.cross-floor-dialog header button:hover {
+  background: #e2e8f0;
+}
+
+.cross-floor-dialog-list {
+  display: flex;
+  max-height: 330px;
+  flex-direction: column;
+  gap: 5px;
+  overflow: auto;
+  padding: 8px;
+}
+
+.cross-floor-dialog-list > button {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 9px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #fff;
+  color: #1e293b;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cross-floor-dialog-list > button:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
 }
 
 .connections-toggle {

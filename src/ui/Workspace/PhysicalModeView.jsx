@@ -12,11 +12,13 @@ export default function PhysicalModeView({
   devices,
   links,
   placements = EMPTY_PLACEMENTS,
+  crossFloorConnections = EMPTY_PLACEMENTS,
   selectedDeviceId,
   interactionMode = "select",
   onSelectDevice,
   onMoveDevice,
   onAddDevice,
+  onShowCrossFloorConnections,
 }) {
   const canvasRef = useRef(null);
   const [renderError, setRenderError] = useState("");
@@ -117,6 +119,7 @@ export default function PhysicalModeView({
           <DeviceNode
             key={device.id}
             device={device}
+            crossFloorConnections={crossFloorConnections[device.id]}
             label={device.name}
             x={x}
             y={y}
@@ -128,6 +131,7 @@ export default function PhysicalModeView({
               "floorplan-2d",
               transform.toFloorplan(position)
             )}
+            onShowCrossFloorConnections={onShowCrossFloorConnections}
           />
         ))}
       </div>

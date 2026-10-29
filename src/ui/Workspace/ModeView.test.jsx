@@ -125,3 +125,68 @@ test("shows port indicators when hovering a logical cable", () => {
     expect(container.querySelectorAll(".logical-link-port-indicator")).toHaveLength(2);
     expect(container.querySelector(".logical-link-hover-label")).toHaveTextContent("GigabitEthernet0/0");
 });
+
+test("keeps the Logical cable tool active while changing floors", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const first = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const second = state.addDeviceFromProfile("generic-desktop-pc", "floor-2");
+    const allDevices = [first, second];
+    const { container, rerender } = render(
+      <LogicalModeView
+        devices={[first]}
+        allDevices={allDevices}
+        links={[]}
+        onConnectEthernet={(portAId, portBId, options) =>
+          state.connectEthernet(portAId, portBId, options)}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Cable" }));
+    fireEvent.pointerDown(container.querySelector(".network-device-node"), {
+      button: 0,
+      pointerId: 1,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /GigabitEthernet0\/0 · copper/ }));
+
+    rerender(
+      <LogicalModeView
+        devices={[second]}
+        allDevices={allDevices}
+        links={[]}
+        onConnectEthernet={(portAId, portBId, options) =>
+          state.connectEthernet(portAId, portBId, options)}
+      />
+    );
+
+    expect(screen.getByRole("button", { name: "Cancel cable" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.pointerDown(container.querySelector(".network-device-node"), {
+      button: 0,
+      pointerId: 2,
+    });
+    fireEvent.click(screen.getByRole("button", { name: /GigabitEthernet0\/0 · copper/ }));
+
+    expect(state.getSnapshot().links[0]).toMatchObject({
+      floorId: null,
+      endpointA: { floorId: "floor-1" },
+      endpointB: { floorId: "floor-2" },
+    });
+});
+
+test("shows a device-level indicator for links to other floors", () => {
+    const onShowCrossFloorConnections = jest.fn();
+    render(
+      <LogicalModeView
+        devices={[router]}
+        links={[]}
+        crossFloorConnections={{
+          [router.id]: [{ linkId: "cross-link", floorId: "floor-2" }],
+        }}
+        onShowCrossFloorConnections={onShowCrossFloorConnections}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", {
+      name: "1 other-floor connection for Edge router",
+    }));
+    expect(onShowCrossFloorConnections).toHaveBeenCalledWith(router.id);
+});

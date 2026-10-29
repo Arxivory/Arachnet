@@ -22,11 +22,13 @@ export default function DeviceNode({
   label,
   x,
   y,
+  crossFloorConnections = [],
   selected = false,
   interactionMode = "select",
   onSelect,
   onMove,
   onCablePick,
+  onShowCrossFloorConnections,
 }) {
   const Icon = DEVICE_ICONS[device.kind] ?? Network;
   const model = device.model && device.model !== "generic"
@@ -79,23 +81,40 @@ export default function DeviceNode({
   }
 
   return (
-    <button
-      type="button"
-      className={`network-device-node device-tile${selected ? " is-selected" : ""}`}
-      style={{ left: x, top: y }}
-      aria-label={`${model} network device`}
-      aria-pressed={selected}
-      title={model}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onKeyDown={handleKeyDown}
-    >
-      <span className="device-icon" aria-hidden="true">
-        <Icon size={24} strokeWidth={2} />
-      </span>
-      <span className="device-type">{model}</span>
-    </button>
+    <div className="network-device-node-container" style={{ left: x, top: y }}>
+      <button
+        type="button"
+        className={`network-device-node device-tile${selected ? " is-selected" : ""}`}
+        aria-label={`${model} network device`}
+        aria-pressed={selected}
+        title={model}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onKeyDown={handleKeyDown}
+      >
+        <span className="device-icon" aria-hidden="true">
+          <Icon size={24} strokeWidth={2} />
+        </span>
+        <span className="device-type">{model}</span>
+      </button>
+      {crossFloorConnections.length > 0 && (
+        <button
+          type="button"
+          className="cross-floor-device-indicator"
+          aria-label={`${crossFloorConnections.length} other-floor connection${crossFloorConnections.length === 1 ? "" : "s"} for ${device.name}`}
+          aria-haspopup="dialog"
+          title="Connections to other floors"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onShowCrossFloorConnections?.(device.id);
+          }}
+        >
+          ↗{crossFloorConnections.length}
+        </button>
+      )}
+    </div>
   );
 }

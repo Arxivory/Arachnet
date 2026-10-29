@@ -220,6 +220,7 @@ export class ApplicationStateManager {
         endpointA: {
           deviceId: deviceA.id,
           deviceName: deviceA.name,
+          floorId: deviceA.floorId,
           portId: portA.id,
           portName: portA.name,
           interfaceName: [...deviceA.interfaces.values()]
@@ -228,6 +229,7 @@ export class ApplicationStateManager {
         endpointB: {
           deviceId: deviceB.id,
           deviceName: deviceB.name,
+          floorId: deviceB.floorId,
           portId: portB.id,
           portName: portB.name,
           interfaceName: [...deviceB.interfaces.values()]

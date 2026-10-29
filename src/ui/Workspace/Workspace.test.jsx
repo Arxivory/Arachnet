@@ -2,8 +2,22 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { ViewController } from "../../core/rendering-engine";
 import Toolbar from "../Toolbar/Toolbar";
 import Workspace from "./Workspace";
+import { ApplicationStateManager } from "../state/application-state-manager";
 
-jest.mock("./LogicalModeView", () => () => <div>Logical topology canvas</div>);
+jest.mock("./LogicalModeView", () => (props) => (
+  <>
+    <div>Logical topology canvas</div>
+    {Object.keys(props.crossFloorConnections ?? {}).map((deviceId) => (
+      <button
+        key={deviceId}
+        type="button"
+        onClick={() => props.onShowCrossFloorConnections(deviceId)}
+      >
+        Open other-floor connections
+      </button>
+    ))}
+  </>
+));
 jest.mock("./PhysicalModeView", () => () => <div>Physical floorplan canvas</div>);
 jest.mock("./CadModeView", () => () => <div>3D CAD canvas</div>);
 jest.mock("./InteractiveModeView", () => () => <div>Interactive building canvas</div>);
@@ -67,5 +81,35 @@ describe("rendering workspace UI", () => {
     expect(screen.getByRole("navigation", { name: "Floor navigator" })).toBeInTheDocument();
     expect(screen.getByText("3D CAD canvas")).toBeInTheDocument();
     expect(screen.queryByText("ARACHNET · DIGITAL TWIN")).not.toBeInTheDocument();
+  });
+
+  test("opens cross-floor link navigation and moves to the connected device floor", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const floorOneDevice = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const floorTwoDevice = state.addDeviceFromProfile("generic-desktop-pc", "floor-2");
+    state.connectEthernet(
+      [...floorOneDevice.ports.values()][0].id,
+      [...floorTwoDevice.ports.values()][0].id
+    );
+    const controller = new ViewController({ floorId: "floor-1" });
+    const onSelectDevice = jest.fn();
+    const snapshot = state.getSnapshot();
+
+    render(
+      <Workspace
+        viewController={controller}
+        devices={snapshot.devices}
+        links={snapshot.links}
+        placements={snapshot.placements}
+        onSelectDevice={onSelectDevice}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Open other-floor connections" }));
+    expect(screen.getByRole("dialog", { name: "Other-floor links" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Desktop PC.*Floor 2/ }));
+
+    expect(controller.state.floorId).toBe("floor-2");
+    expect(onSelectDevice).toHaveBeenCalledWith(floorTwoDevice.id);
   });
 });

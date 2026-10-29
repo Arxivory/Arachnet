@@ -21,14 +21,17 @@ function getAvailablePorts(device, media = null) {
 
 export default function LogicalModeView({
   devices,
+  allDevices = devices,
   links,
   placements = EMPTY_PLACEMENTS,
+  crossFloorConnections = EMPTY_PLACEMENTS,
   selectedDeviceId,
   interactionMode = "select",
   onSelectDevice,
   onMoveDevice,
   onAddDevice,
   onConnectEthernet,
+  onShowCrossFloorConnections,
 }) {
   const canvasRef = useRef(null);
   const [renderError, setRenderError] = useState("");
@@ -41,8 +44,8 @@ export default function LogicalModeView({
   const [hoveredLinkId, setHoveredLinkId] = useState(null);
   const { offset, isPanning, handlers } = usePanInteraction(interactionMode);
   const devicesById = useMemo(
-    () => new Map(devices.map((device) => [device.id, device])),
-    [devices]
+    () => new Map(allDevices.map((device) => [device.id, device])),
+    [allDevices]
   );
 
   useEffect(() => {
@@ -228,6 +231,7 @@ export default function LogicalModeView({
             <DeviceNode
               key={node.id}
               device={device}
+              crossFloorConnections={crossFloorConnections[device.id]}
               label={node.label}
               x={node.x}
               y={node.y}
@@ -236,6 +240,7 @@ export default function LogicalModeView({
               onSelect={onSelectDevice}
               onMove={(deviceId, position) => onMoveDevice?.(deviceId, "logical-2d", position)}
               onCablePick={handleCableDevicePick}
+              onShowCrossFloorConnections={onShowCrossFloorConnections}
             />
           );
         })}

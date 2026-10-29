@@ -107,6 +107,25 @@ describe("ApplicationStateManager", () => {
     expect(state.getSnapshot().links).toHaveLength(0);
   });
 
+  test("connects devices across floors and publishes both endpoint floors", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const floorOneDevice = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const floorTwoDevice = state.addDeviceFromProfile("generic-desktop-pc", "floor-2");
+    const [portA] = floorOneDevice.ports.values();
+    const [portB] = floorTwoDevice.ports.values();
+
+    const link = state.connectEthernet(portA.id, portB.id);
+    const publishedLink = state.getSnapshot().links[0];
+
+    expect(link.routePoints.length).toBeGreaterThan(2);
+    expect(publishedLink).toMatchObject({
+      floorId: null,
+      planarLengthMeters: null,
+      endpointA: { deviceId: floorOneDevice.id, floorId: "floor-1" },
+      endpointB: { deviceId: floorTwoDevice.id, floorId: "floor-2" },
+    });
+  });
+
   test("applies interface addressing and switch VLAN settings to the forwarding devices", () => {
     const state = new ApplicationStateManager({ seedDemoTopology: false });
     const source = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");

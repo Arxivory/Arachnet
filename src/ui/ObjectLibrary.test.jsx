@@ -10,7 +10,13 @@ describe("ObjectLibrary", () => {
     expect(screen.getByText("ISR 4331")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Routers" })).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "Switches" })).toBeInTheDocument();
-    expect(screen.getAllByRole("listitem")).toHaveLength(5);
+    expect(screen.getByRole("list", { name: "Access Points" })).toBeInTheDocument();
+    expect(screen.getByText("Wireless AP")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "EndDevices" })).toBeInTheDocument();
+    expect(screen.getByText("Desktop PC")).toBeInTheDocument();
+    expect(screen.getByText("Laptop")).toBeInTheDocument();
+    expect(screen.getByText("Server")).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(9);
   });
 
   test("searches catalog profiles", () => {

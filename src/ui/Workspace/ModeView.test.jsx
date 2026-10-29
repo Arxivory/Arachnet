@@ -42,7 +42,7 @@ test("renders Logical nodes as library-style device tiles and pans the grid and 
     <LogicalModeView devices={[router]} links={[]} interactionMode="pan" />
   );
   const surface = container.querySelector(".logical-surface");
-  const node = screen.getByRole("img", { name: "Cisco 1941 network device" });
+  const node = screen.getByRole("button", { name: "Cisco 1941 network device" });
 
   expect(node).toHaveClass("device-tile");
   expect(node.querySelector("svg")).toBeInTheDocument();
@@ -63,11 +63,12 @@ test("renders Physical nodes as library-style device tiles and supports pan mode
       floor={{ label: "Floor 1" }}
       devices={[router]}
       links={[]}
+      placements={{ "router-1": { floorplanPosition: [500, 300] } }}
       interactionMode="pan"
     />
   );
   const surface = container.querySelector(".physical-surface");
-  const node = screen.getByRole("img", { name: "Cisco 1941 network device" });
+  const node = screen.getByRole("button", { name: "Cisco 1941 network device" });
 
   expect(node).toHaveClass("device-tile");
   fireEvent.pointerDown(surface, { button: 0, pointerId: 2, clientX: 5, clientY: 8 });

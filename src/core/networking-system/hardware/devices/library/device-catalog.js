@@ -3,6 +3,10 @@ import catalyst9200L24T4G from "./catalyst-9200l-24t-4g.json";
 import catalyst930048T from "./catalyst-9300-48t.json";
 import isr4331 from "./isr-4331.json";
 import cisco1941 from "./cisco-1941.json";
+import genericAccessPoint from "./generic-access-point.json";
+import genericDesktopPc from "./generic-desktop-pc.json";
+import genericLaptop from "./generic-laptop.json";
+import genericServer from "./generic-server.json";
 
 const PROFILE_DATA = [
   catalyst2924Xl,
@@ -10,6 +14,10 @@ const PROFILE_DATA = [
   catalyst930048T,
   isr4331,
   cisco1941,
+  genericAccessPoint,
+  genericDesktopPc,
+  genericLaptop,
+  genericServer,
 ];
 
 function cloneProfile(profile) {

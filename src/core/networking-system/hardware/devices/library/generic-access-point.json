@@ -1,0 +1,34 @@
+{
+  "id": "generic-access-point",
+  "manufacturer": "Generic",
+  "family": "Wireless",
+  "model": "Wireless AP",
+  "kind": "wireless-ap",
+  "capabilities": {
+    "layer2": true,
+    "layer3": false,
+    "poe": false,
+    "radios": 2
+  },
+  "portGroups": [
+    {
+      "namePattern": "GigabitEthernet0/{index}",
+      "count": 1,
+      "startIndex": 0,
+      "media": "copper",
+      "connector": "8P8C",
+      "supportedSpeedsMbps": [10, 100, 1000],
+      "supportedDuplexModes": ["full"],
+      "autoMdix": true,
+      "interfaceType": "ethernet"
+    }
+  ],
+  "radios": [
+    { "band": "2.4GHz", "standard": "Wi-Fi 6" },
+    { "band": "5GHz", "standard": "Wi-Fi 6" }
+  ],
+  "profileNotes": [
+    "Generic simulation template, not a vendor or SKU specification.",
+    "Wireless association and RF behavior are not emulated."
+  ]
+}

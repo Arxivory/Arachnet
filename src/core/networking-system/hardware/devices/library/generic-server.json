@@ -1,0 +1,27 @@
+{
+  "id": "generic-server",
+  "manufacturer": "Generic",
+  "family": "Endpoints",
+  "model": "Server",
+  "kind": "server",
+  "capabilities": {
+    "ethernet": true,
+    "interfaces": 2
+  },
+  "portGroups": [
+    {
+      "namePattern": "GigabitEthernet0/{index}",
+      "count": 2,
+      "startIndex": 0,
+      "media": "copper",
+      "connector": "8P8C",
+      "supportedSpeedsMbps": [10, 100, 1000],
+      "supportedDuplexModes": ["full"],
+      "autoMdix": true,
+      "interfaceType": "ethernet"
+    }
+  ],
+  "profileNotes": [
+    "Generic simulation template with two wired Ethernet interfaces, not a vendor or SKU specification."
+  ]
+}

@@ -10,19 +10,18 @@ import {
   Wifi,
 } from "lucide-react";
 import { DeviceCatalog } from "../core/networking-system";
+import { DEVICE_PROFILE_DRAG_TYPE } from "./Workspace/device-drag-data";
 
 const CATEGORY_PRESENTATION = {
   router: { label: "Routers", Icon: RouterIcon },
   switch: { label: "Switches", Icon: Network },
-  "wireless-ap": { label: "EndDevices", Icon: Wifi },
+  "wireless-ap": { label: "Access Points", Icon: Wifi },
   pc: { label: "EndDevices", Icon: Monitor },
   laptop: { label: "EndDevices", Icon: Laptop },
   server: { label: "EndDevices", Icon: Server },
 };
 
-const CATEGORY_ORDER = ["Routers", "Switches", "EndDevices"];
-const PROFILE_DRAG_TYPE = "application/x-arachnet-device-profile";
-
+const CATEGORY_ORDER = ["Routers", "Switches", "Access Points", "EndDevices"];
 const profiles = DeviceCatalog.listProfiles().map((summary) => ({
   ...DeviceCatalog.getProfile(summary.id),
   ...summary,
@@ -34,7 +33,7 @@ function handleProfileDragStart(event, profile) {
     profileId: profile.id,
   });
   event.dataTransfer.effectAllowed = "copy";
-  event.dataTransfer.setData(PROFILE_DRAG_TYPE, payload);
+  event.dataTransfer.setData(DEVICE_PROFILE_DRAG_TYPE, payload);
   event.dataTransfer.setData("text/plain", profile.id);
 }
 
@@ -62,6 +61,16 @@ export default function ObjectLibrary() {
         <h3>Object Library</h3>
       </div>
       <hr className="header-separator" />
+      <label className="object-library-search">
+        <Search size={14} aria-hidden="true" />
+        <span className="visually-hidden">Search device models</span>
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search device models"
+        />
+      </label>
 
       {categories.map(({ label, profiles: categoryProfiles }) => (
         <section className="device-category" key={label}>

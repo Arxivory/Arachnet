@@ -5,61 +5,72 @@ import LogicalModeView from "./LogicalModeView";
 import PhysicalModeView from "./PhysicalModeView";
 import CadModeView from "./CadModeView";
 import InteractiveModeView from "./InteractiveModeView";
-import { DEMO_DEVICES, DEMO_FLOORS, DEMO_LINKS } from "./demo-data";
+import { DEMO_FLOORS } from "./demo-data";
 import { useViewState } from "./useViewState";
 
-export default function Workspace({ viewController, interactionMode = "select" }) {
+const EMPTY_DEVICES = [];
+const EMPTY_LINKS = [];
+const EMPTY_PLACEMENTS = {};
+
+export default function Workspace({
+  viewController,
+  interactionMode = "select",
+  devices = EMPTY_DEVICES,
+  links = EMPTY_LINKS,
+  placements = EMPTY_PLACEMENTS,
+  selectedDeviceId = null,
+  onSelectDevice,
+  onMoveDevice,
+  onAddDevice,
+}) {
   const viewState = useViewState(viewController);
   const floor = DEMO_FLOORS.find(({ id }) => id === viewState.floorId) ?? DEMO_FLOORS[0];
   const floorDevices = useMemo(
-    () => DEMO_DEVICES.filter((device) => device.floorId === floor.id),
-    [floor.id]
+    () => devices.filter((device) => device.floorId === floor.id),
+    [devices, floor.id]
   );
-  const floorDeviceIds = new Set(floorDevices.map(({ id }) => id));
-  const deviceByPortId = new Map(
-    DEMO_DEVICES.map((device) => [`${device.id}-port`, device.id])
+  const floorLinks = useMemo(
+    () => links.filter((link) => link.floorId === floor.id),
+    [floor.id, links]
   );
-  const floorLinks = DEMO_LINKS.filter((link) =>
-    link.floorId === floor.id &&
-    floorDeviceIds.has(deviceByPortId.get(link.portAId)) &&
-    floorDeviceIds.has(deviceByPortId.get(link.portBId))
-  );
-
-  let modeContent;
-  switch (viewState.mode) {
-    case VIEW_MODES.LOGICAL:
-      modeContent = (
-        <LogicalModeView
-          devices={floorDevices}
-          links={floorLinks}
-          interactionMode={interactionMode}
-        />
-      );
-      break;
-    case VIEW_MODES.PHYSICAL:
-      modeContent = (
-        <PhysicalModeView
-          floor={floor}
-          devices={floorDevices}
-          links={floorLinks}
-          interactionMode={interactionMode}
-        />
-      );
-      break;
-    case VIEW_MODES.CAD:
-      modeContent = <CadModeView floor={floor} />;
-      break;
-    case VIEW_MODES.INTERACTIVE:
-      modeContent = <InteractiveModeView />;
-      break;
-    default:
-      modeContent = <p role="status">Unsupported rendering mode.</p>;
-  }
 
   return (
     <main className="workspace" aria-label={`${viewState.mode} workspace`}>
       <section className="workspace-viewport" aria-live="polite">
-        {modeContent}
+        <div className="workspace-mode-container" hidden={viewState.mode !== VIEW_MODES.LOGICAL}>
+          <LogicalModeView
+            devices={floorDevices}
+            links={floorLinks}
+            placements={placements}
+            selectedDeviceId={selectedDeviceId}
+            interactionMode={interactionMode}
+            onSelectDevice={onSelectDevice}
+            onMoveDevice={onMoveDevice}
+            onAddDevice={(profileId, placement) => onAddDevice(profileId, floor.id, placement)}
+          />
+        </div>
+        <div className="workspace-mode-container" hidden={viewState.mode !== VIEW_MODES.PHYSICAL}>
+          <PhysicalModeView
+            floor={floor}
+            devices={floorDevices}
+            links={floorLinks}
+            placements={placements}
+            selectedDeviceId={selectedDeviceId}
+            interactionMode={interactionMode}
+            onSelectDevice={onSelectDevice}
+            onMoveDevice={onMoveDevice}
+            onAddDevice={(profileId, placement) => onAddDevice(profileId, floor.id, placement)}
+          />
+        </div>
+        <div className="workspace-mode-container" hidden={viewState.mode !== VIEW_MODES.CAD}>
+          <CadModeView floor={floor} devices={floorDevices} active={viewState.mode === VIEW_MODES.CAD} />
+        </div>
+        <div className="workspace-mode-container" hidden={viewState.mode !== VIEW_MODES.INTERACTIVE}>
+          <InteractiveModeView
+            devices={devices}
+            active={viewState.mode === VIEW_MODES.INTERACTIVE}
+          />
+        </div>
       </section>
       {viewState.floorBased && (
         <FloorNavigator

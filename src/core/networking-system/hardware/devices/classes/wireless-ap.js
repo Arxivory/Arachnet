@@ -1,11 +1,11 @@
 import { Device } from "../base/device";
 
 export class WirelessAP extends Device {
-  constructor({ radios = [], poeDrawWatts = 0, ...options }) {
+  constructor({ radios = null, poeDrawWatts = 0, ...options }) {
     super(options);
     this.assertHardwareProfileKind("wireless-ap");
     this.kind = "wireless-ap";
-    this.radios = radios.map((radio) => ({ ...radio }));
+    this.radios = (radios ?? this.hardwareProfile?.radios ?? []).map((radio) => ({ ...radio }));
     this.poeDrawWatts = poeDrawWatts;
   }
 

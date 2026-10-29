@@ -1,13 +1,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FloorplanTransform, Physical2DRenderer } from "../../core/rendering-engine";
 import DeviceNode from "./DeviceNode";
+import { readDeviceProfileId } from "./device-drag-data";
 import usePanInteraction from "./usePanInteraction";
 
 const PLAN_BOUNDS = { x: 0, y: 0, width: 1000, height: 600 };
+const EMPTY_PLACEMENTS = {};
 
-export default function PhysicalModeView({ floor, devices, links, interactionMode = "select" }) {
+export default function PhysicalModeView({
+  floor,
+  devices,
+  links,
+  placements = EMPTY_PLACEMENTS,
+  selectedDeviceId,
+  interactionMode = "select",
+  onSelectDevice,
+  onMoveDevice,
+  onAddDevice,
+}) {
   const canvasRef = useRef(null);
   const [renderError, setRenderError] = useState("");
+  const [interactionError, setInteractionError] = useState("");
   const [viewport, setViewport] = useState({ width: 900, height: 560 });
   const { offset, isPanning, handlers } = usePanInteraction(interactionMode);
   const transform = useMemo(() => new FloorplanTransform(
@@ -61,15 +74,37 @@ export default function PhysicalModeView({ floor, devices, links, interactionMod
   }, [links, transform, viewport]);
 
   const positionedDevices = useMemo(() => devices.flatMap((device) => {
-    if (!Array.isArray(device.floorplanPosition)) return [];
-    const [x, y] = transform.toViewport(device.floorplanPosition);
+    const floorplanPosition = placements[device.id]?.floorplanPosition;
+    if (!Array.isArray(floorplanPosition)) return [];
+    const [x, y] = transform.toViewport(floorplanPosition);
     return [{ device, x, y }];
-  }), [devices, transform]);
+  }), [devices, placements, transform]);
+
+  function handleDrop(event) {
+    event.preventDefault();
+    try {
+      const profileId = readDeviceProfileId(event.dataTransfer);
+      if (!profileId) return;
+      const bounds = event.currentTarget.getBoundingClientRect();
+      const viewportPoint = [
+        event.clientX - bounds.left - offset.x,
+        event.clientY - bounds.top - offset.y,
+      ];
+      onAddDevice?.(profileId, {
+        floorplanPosition: transform.toFloorplan(viewportPoint),
+      });
+      setInteractionError("");
+    } catch (error) {
+      setInteractionError(error.message);
+    }
+  }
 
   return (
     <div
       className={`render-surface physical-surface${interactionMode === "pan" ? " pan-enabled" : ""}${isPanning ? " is-panning" : ""}`}
       {...handlers}
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={handleDrop}
     >
       <div className="physical-content" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
         <svg className="floorplan-underlay" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
@@ -85,10 +120,19 @@ export default function PhysicalModeView({ floor, devices, links, interactionMod
             label={device.name}
             x={x}
             y={y}
+            selected={selectedDeviceId === device.id}
+            interactionMode={interactionMode}
+            onSelect={onSelectDevice}
+            onMove={(deviceId, position) => onMoveDevice?.(
+              deviceId,
+              "floorplan-2d",
+              transform.toFloorplan(position)
+            )}
           />
         ))}
       </div>
       {renderError && <p className="render-error" role="status">Physical view could not render: {renderError}</p>}
+      {interactionError && <p className="render-error" role="status">{interactionError}</p>}
     </div>
   );
 }

@@ -1,0 +1,26 @@
+{
+  "id": "generic-desktop-pc",
+  "manufacturer": "Generic",
+  "family": "Endpoints",
+  "model": "Desktop PC",
+  "kind": "pc",
+  "capabilities": {
+    "ethernet": true
+  },
+  "portGroups": [
+    {
+      "namePattern": "GigabitEthernet0/{index}",
+      "count": 1,
+      "startIndex": 0,
+      "media": "copper",
+      "connector": "8P8C",
+      "supportedSpeedsMbps": [10, 100, 1000],
+      "supportedDuplexModes": ["full"],
+      "autoMdix": true,
+      "interfaceType": "ethernet"
+    }
+  ],
+  "profileNotes": [
+    "Generic simulation template with one wired Ethernet interface, not a vendor or SKU specification."
+  ]
+}

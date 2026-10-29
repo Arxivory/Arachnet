@@ -22,7 +22,7 @@ export function computeGridLayout(topology, { width = 1000, height = 700, column
     const row = Math.floor(index / columnCount);
     return {
       id: device.id,
-      label: device.model ?? device.name,
+      label: device.model && device.model !== "generic" ? device.model : device.name,
       kind: device.kind ?? "device",
       portCount: device.ports.size,
       x: columnCount === 1 ? width / 2 : margin + (column * usableWidth) / (columnCount - 1),

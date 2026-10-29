@@ -1,0 +1,27 @@
+{
+  "id": "generic-laptop",
+  "manufacturer": "Generic",
+  "family": "Endpoints",
+  "model": "Laptop",
+  "kind": "laptop",
+  "capabilities": {
+    "ethernet": true,
+    "wireless": true
+  },
+  "portGroups": [
+    {
+      "namePattern": "GigabitEthernet0/{index}",
+      "count": 1,
+      "startIndex": 0,
+      "media": "copper",
+      "connector": "8P8C",
+      "supportedSpeedsMbps": [10, 100, 1000],
+      "supportedDuplexModes": ["full"],
+      "autoMdix": true,
+      "interfaceType": "ethernet"
+    }
+  ],
+  "profileNotes": [
+    "Generic simulation template with wired Ethernet inventory; wireless behavior is not emulated."
+  ]
+}

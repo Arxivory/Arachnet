@@ -30,7 +30,7 @@ export class Cad3DRenderer {
     this.resize();
   }
 
-  setFloor(floorId, models = []) {
+  setFloor(floorId, models = [], { frame = true } = {}) {
     if (floorId === null || floorId === undefined) throw new TypeError("CAD mode requires a floor id.");
     this.floorRoot.clear();
     this.floorId = floorId;
@@ -41,7 +41,8 @@ export class Cad3DRenderer {
       }
       this.floorRoot.add(model.object3D);
     }
-    this.frameFloor();
+    if (frame) this.frameFloor();
+    else this.render();
   }
 
   frameFloor() {

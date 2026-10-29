@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import {
   Laptop,
   Monitor,
@@ -16,22 +17,78 @@ const DEVICE_ICONS = {
   server: Server,
 };
 
-export default function DeviceNode({ device, label, x, y }) {
+export default function DeviceNode({
+  device,
+  label,
+  x,
+  y,
+  selected = false,
+  interactionMode = "select",
+  onSelect,
+  onMove,
+}) {
   const Icon = DEVICE_ICONS[device.kind] ?? Network;
-  const model = device.model ?? label ?? device.name ?? device.id;
+  const model = device.model && device.model !== "generic"
+    ? device.model
+    : label ?? device.name ?? device.id;
+  const dragStart = useRef(null);
+
+  function handlePointerDown(event) {
+    if (interactionMode !== "select" || (event.button != null && event.button !== 0)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    onSelect?.(device.id);
+    dragStart.current = {
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      x,
+      y,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function handlePointerMove(event) {
+    const start = dragStart.current;
+    if (!start || start.pointerId !== event.pointerId) return;
+    const nextX = start.x + event.clientX - start.clientX;
+    const nextY = start.y + event.clientY - start.clientY;
+    onMove?.(device.id, [nextX, nextY]);
+  }
+
+  function handlePointerUp(event) {
+    if (dragStart.current?.pointerId !== event.pointerId) return;
+    dragStart.current = null;
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelect?.(device.id);
+    }
+  }
 
   return (
-    <div
-      className="network-device-node device-tile"
+    <button
+      type="button"
+      className={`network-device-node device-tile${selected ? " is-selected" : ""}`}
       style={{ left: x, top: y }}
-      role="img"
       aria-label={`${model} network device`}
+      aria-pressed={selected}
       title={model}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+      onKeyDown={handleKeyDown}
     >
       <span className="device-icon" aria-hidden="true">
         <Icon size={24} strokeWidth={2} />
       </span>
       <span className="device-type">{model}</span>
-    </div>
+    </button>
   );
 }

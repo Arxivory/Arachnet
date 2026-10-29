@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { FpsController, MultiFloorWorld } from "../../core/rendering-engine";
 import { createDemoFloorModel, DEMO_FLOORS } from "./demo-data";
@@ -11,20 +11,28 @@ function disposeObject(object) {
   });
 }
 
-export default function InteractiveModeView() {
+export default function InteractiveModeView({ devices, active = false }) {
   const canvasRef = useRef(null);
+  const rendererRef = useRef(null);
+  const worldRef = useRef(null);
+  const controllerRef = useRef(null);
+  const modelsRef = useRef([]);
+  const devicesRef = useRef(devices);
+  devicesRef.current = devices;
   const [renderError, setRenderError] = useState("");
+  const deviceGeometryKey = useMemo(() => JSON.stringify(devices.map((device) => ({
+    id: device.id,
+    kind: device.kind,
+    floorId: device.floorId,
+    position: device.transform?.position ?? device.position,
+  }))), [devices]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    let renderer;
-    let world;
-    let controller;
-    let frameId;
+    let resizeObserver;
     let resize;
-    const models = [];
     try {
-      renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
       renderer.setPixelRatio(window.devicePixelRatio || 1);
       renderer.setClearColor(0xe2e8f0);
       const scene = new THREE.Scene();
@@ -32,18 +40,15 @@ export default function InteractiveModeView() {
       const light = new THREE.DirectionalLight(0xffffff, 2);
       light.position.set(12, -8, 24);
       scene.add(light);
-      world = new MultiFloorWorld(renderer, { scene });
-      world.setFloors(DEMO_FLOORS);
-      for (const floor of DEMO_FLOORS) {
-        const model = createDemoFloorModel(floor.id);
-        models.push(model);
-        world.setFloorContent(floor.id, [model]);
-      }
 
+      const world = new MultiFloorWorld(renderer, { scene });
+      world.setFloors(DEMO_FLOORS);
       world.camera.position.set(24, -25, 16);
       world.camera.lookAt(10, 6, 4);
-      controller = new FpsController({ moveSpeed: 5 });
-      controller.start(world.camera, canvas);
+
+      rendererRef.current = renderer;
+      worldRef.current = world;
+      controllerRef.current = new FpsController({ moveSpeed: 5 });
       resize = () => {
         const bounds = canvas.getBoundingClientRect();
         const width = Math.max(bounds.width || 900, 1);
@@ -53,6 +58,60 @@ export default function InteractiveModeView() {
         world.camera.updateProjectionMatrix();
       };
       resize();
+      resizeObserver = typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(resize);
+      resizeObserver?.observe(canvas);
+      window.addEventListener("resize", resize);
+      setRenderError("");
+    } catch (error) {
+      rendererRef.current?.dispose();
+      rendererRef.current = null;
+      worldRef.current?.dispose();
+      worldRef.current = null;
+      setRenderError(error.message);
+    }
+
+    return () => {
+      controllerRef.current?.stop();
+      worldRef.current?.dispose();
+      modelsRef.current.forEach(disposeObject);
+      modelsRef.current = [];
+      rendererRef.current?.dispose();
+      rendererRef.current = null;
+      worldRef.current = null;
+      controllerRef.current = null;
+      resizeObserver?.disconnect();
+      if (resize) window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  useEffect(() => {
+    const world = worldRef.current;
+    if (!world) return;
+    try {
+      const nextModels = DEMO_FLOORS.map((floor) =>
+        createDemoFloorModel(floor.id, devicesRef.current)
+      );
+      nextModels.forEach((model, index) => {
+        world.setFloorContent(DEMO_FLOORS[index].id, [model]);
+      });
+      modelsRef.current.forEach(disposeObject);
+      modelsRef.current = nextModels;
+      setRenderError("");
+    } catch (error) {
+      setRenderError(error.message);
+    }
+  }, [deviceGeometryKey]);
+
+  useEffect(() => {
+    if (!active || !worldRef.current || !controllerRef.current) return undefined;
+    const canvas = canvasRef.current;
+    const world = worldRef.current;
+    const controller = controllerRef.current;
+    let frameId;
+    try {
+      controller.start(world.camera, canvas);
       const clock = new THREE.Clock();
       const animate = () => {
         frameId = window.requestAnimationFrame(animate);
@@ -60,22 +119,16 @@ export default function InteractiveModeView() {
         world.render();
       };
       animate();
-      window.addEventListener("resize", resize);
-      setRenderError("");
     } catch (error) {
-      renderer?.dispose();
+      controller.stop();
       setRenderError(error.message);
     }
 
     return () => {
       if (frameId) window.cancelAnimationFrame(frameId);
-      if (resize) window.removeEventListener("resize", resize);
-      controller?.stop();
-      world?.dispose();
-      models.forEach(disposeObject);
-      renderer?.dispose();
+      controller.stop();
     };
-  }, []);
+  }, [active]);
 
   return (
     <div className="render-surface interactive-surface">

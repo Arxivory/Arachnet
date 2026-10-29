@@ -1,0 +1,48 @@
+{
+  "id": "isr-4331",
+  "manufacturer": "Cisco",
+  "family": "ISR 4000",
+  "model": "ISR 4331",
+  "kind": "router",
+  "capabilities": {
+    "layer3": true,
+    "embeddedGigabitEthernetPorts": 3,
+    "networkModuleSlots": 2
+  },
+  "portGroups": [
+    {
+      "namePattern": "GigabitEthernet0/0/{index}",
+      "count": 2,
+      "startIndex": 0,
+      "media": "copper",
+      "connector": "8P8C",
+      "supportedSpeedsMbps": [10, 100, 1000],
+      "supportedDuplexModes": ["full"],
+      "autoMdix": true,
+      "interfaceType": "ethernet"
+    },
+    {
+      "namePattern": "GigabitEthernet0/0/2",
+      "count": 1,
+      "startIndex": 0,
+      "media": "fiber",
+      "connector": "SFP",
+      "supportedSpeedsMbps": [1000],
+      "supportedDuplexModes": ["full"],
+      "autoMdix": false,
+      "interfaceType": "ethernet"
+    }
+  ],
+  "expansionSlots": [
+    {
+      "type": "network-interface-module",
+      "count": 2,
+      "notes": "Module-dependent interfaces are not instantiated in this profile."
+    }
+  ],
+  "profileNotes": [
+    "The profile models the three embedded Gigabit Ethernet interfaces only.",
+    "The optional NIM modules, service performance, and license-dependent features are not emulated."
+  ],
+  "source": "https://www.cisco.com/c/en/us/products/routers/4000-series-integrated-services-routers-isr/index.html"
+}

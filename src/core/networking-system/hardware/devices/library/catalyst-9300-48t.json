@@ -1,0 +1,42 @@
+{
+  "id": "catalyst-9300-48t",
+  "manufacturer": "Cisco",
+  "family": "Catalyst 9300",
+  "model": "C9300-48T",
+  "kind": "switch",
+  "switchingMode": "layer2",
+  "poeBudgetWatts": 0,
+  "capabilities": {
+    "layer2": true,
+    "layer3": true,
+    "poe": false,
+    "modularUplinks": true,
+    "stackwiseBandwidthGbps": 480
+  },
+  "portGroups": [
+    {
+      "namePattern": "GigabitEthernet1/0/{index}",
+      "count": 48,
+      "startIndex": 1,
+      "media": "copper",
+      "connector": "8P8C",
+      "supportedSpeedsMbps": [10, 100, 1000],
+      "supportedDuplexModes": ["full"],
+      "autoMdix": true,
+      "interfaceType": "ethernet"
+    }
+  ],
+  "expansionSlots": [
+    {
+      "type": "network-module",
+      "count": 1,
+      "notes": "Uplink module is optional and its ports are not instantiated in this base profile."
+    }
+  ],
+  "profileNotes": [
+    "This is the non-PoE C9300-48T variant; uplink module and power-supply options are not selected.",
+    "Stacking hardware and behavior are not emulated.",
+    "The device supports Layer 3 features, but the current switch engine only emulates Layer 2 forwarding."
+  ],
+  "source": "https://www.cisco.com/c/en/us/products/collateral/switches/catalyst-9300-series-switches/nb-06-cat9300-ser-data-sheet-cte-en.html"
+}

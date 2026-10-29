@@ -344,8 +344,8 @@ html,
   align-items: center;    /* Centers horizontally */
   justify-content: center; /* Centers vertically */
   text-align: center;     /* Centers multi-line text */
-  
-  height: 90px;          /* Taller fixed height */
+  width: 65px;
+  height: 65px;
   padding: 8px 4px;
   
   border: 1px solid #e2e8f0;
@@ -2709,6 +2709,31 @@ html,
     flex-basis: 130px;
     height: 130px;
   }
+}
+
+.object-library-search {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 12px;
+  color: #64748b;
+}
+
+.object-library-search input {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+  font-size: 11px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
 }
 
 .workspace-viewport {

@@ -32,6 +32,22 @@ power ceilings for IEEE 802.3af/at/bt. Hardware power budgets and port counts
 must come from the selected device profile rather than guessed model-family
 defaults.
 
+`DeviceCatalog` provides SKU-specific JSON profiles under
+`hardware/devices/library/`. Pass a profile id when constructing the matching
+class, for example `new Switch({ id, name, profileId: "catalyst-9200l-24t-4g" })`
+or `new Router({ id, name, profileId: "isr-4331" })`. The base `Device` resolves
+the catalog entry and instantiates physical ports and Ethernet interfaces;
+switch/router subclasses apply their model capabilities. Interface MACs created
+from profiles are deterministic, locally administered simulation addresses,
+not factory-assigned device MACs.
+
+Included profiles cover Catalyst 2924-XL, C9200L-24T-4G, C9300-48T, ISR 4331,
+and Cisco 1941. The 2900 entry specifically represents a legacy Catalyst 2900
+XL switch, not an ISR 2900 router. Profiles name their exact model and note
+unmodeled optional modules. In particular, modular uplink/NIM/EHWIC slots do
+not imply those modules are installed. Check the `source` URL and notes on a
+profile before using it as a purchasing or production-network specification.
+
 Switch VLAN and static-route configuration are consumed by the Layer 2/3
 emulation engine. Endpoint interfaces can specify a `defaultGateway` for
 off-subnet IPv4 traffic.
@@ -62,4 +78,6 @@ switching concepts (access/trunk ports, native/allowed VLANs, operational
 interface state). It is a research simulator model, not a Cisco IOS
 implementation or a substitute for vendor-specific validation. Add exact
 device profiles only when their port, PoE, and feature capabilities have been
-verified against the specific SKU documentation.
+verified against the specific SKU documentation. Catalog profiles capture
+selected SKU inventory and high-level capabilities; unmodeled license,
+power-supply, stacking, module, and IOS behavior must not be inferred.

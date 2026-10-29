@@ -1,0 +1,37 @@
+{
+  "id": "cisco-1941",
+  "manufacturer": "Cisco",
+  "family": "ISR G2 1900",
+  "model": "Cisco 1941",
+  "kind": "router",
+  "capabilities": {
+    "layer3": true,
+    "embeddedGigabitEthernetPorts": 2,
+    "ehwicSlots": 2
+  },
+  "portGroups": [
+    {
+      "namePattern": "GigabitEthernet0/{index}",
+      "count": 2,
+      "startIndex": 0,
+      "media": "copper",
+      "connector": "8P8C",
+      "supportedSpeedsMbps": [10, 100, 1000],
+      "supportedDuplexModes": ["full"],
+      "autoMdix": true,
+      "interfaceType": "ethernet"
+    }
+  ],
+  "expansionSlots": [
+    {
+      "type": "ehwic",
+      "count": 2,
+      "notes": "EHWIC-dependent interfaces are not instantiated in this profile."
+    }
+  ],
+  "profileNotes": [
+    "The profile models the two embedded Gigabit Ethernet interfaces only.",
+    "The 1941W integrated wireless AP, console/auxiliary ports, EHWIC modules, and license-dependent features are not emulated."
+  ],
+  "source": "https://www.cisco.com/c/en/us/products/collateral/routers/1900-series-integrated-services-routers-isr/data_sheet_c78_556319.html"
+}

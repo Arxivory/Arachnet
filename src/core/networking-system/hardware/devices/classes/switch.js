@@ -4,8 +4,11 @@ import { CamTable } from "../../../engine/state/cam-table";
 import { SpanningTree } from "../../../engine/protocols/l2/stp";
 
 export class Switch extends Device {
-  constructor({ switchingMode = "layer2", poeBudgetWatts = 0, ...options }) {
+  constructor({ switchingMode = null, poeBudgetWatts = null, ...options }) {
     super(options);
+    this.assertHardwareProfileKind("switch");
+    if (switchingMode === null) switchingMode = this.hardwareProfile?.switchingMode ?? "layer2";
+    if (poeBudgetWatts === null) poeBudgetWatts = this.hardwareProfile?.poeBudgetWatts ?? 0;
     if (!["layer2", "layer3"].includes(switchingMode)) {
       throw new RangeError(`Invalid switch mode: ${switchingMode}`);
     }

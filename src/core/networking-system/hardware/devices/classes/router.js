@@ -7,6 +7,7 @@ import { StaticRoute } from "../../../engine/protocols/l3/static-route";
 export class Router extends Device {
   constructor(options) {
     super(options);
+    this.assertHardwareProfileKind("router");
     this.kind = "router";
     this.staticRoutes = [];
     this.rib = new Rib();

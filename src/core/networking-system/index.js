@@ -5,6 +5,7 @@ export { WirelessInterface } from "./hardware/components/interfaces/wireless/wir
 export { VlanInterface } from "./hardware/components/interfaces/virtual/vlan-interface";
 export { PoeManager } from "./hardware/components/power/poe/poe-manager";
 export { Device } from "./hardware/devices/base/device";
+export { DeviceCatalog } from "./hardware/devices/library/device-catalog";
 export { Switch } from "./hardware/devices/classes/switch";
 export { Router } from "./hardware/devices/classes/router";
 export { WirelessAP } from "./hardware/devices/classes/wireless-ap";

@@ -1,0 +1,32 @@
+{
+  "id": "catalyst-2924-xl",
+  "manufacturer": "Cisco",
+  "family": "Catalyst 2900 XL",
+  "model": "Catalyst 2924-XL-EN",
+  "kind": "switch",
+  "switchingMode": "layer2",
+  "poeBudgetWatts": 0,
+  "capabilities": {
+    "layer2": true,
+    "layer3": false,
+    "poe": false
+  },
+  "portGroups": [
+    {
+      "namePattern": "FastEthernet0/{index}",
+      "count": 24,
+      "startIndex": 1,
+      "media": "copper",
+      "connector": "8P8C",
+      "supportedSpeedsMbps": [10, 100],
+      "supportedDuplexModes": ["half", "full"],
+      "autoMdix": false,
+      "interfaceType": "ethernet"
+    }
+  ],
+  "profileNotes": [
+    "The catalog models the 24-port Fast Ethernet copper access ports only.",
+    "Optional expansion hardware and console/management connections are not modeled."
+  ],
+  "source": "https://www.cisco.com/c/en/us/products/switches/catalyst-2900-series-xl-switches/index.html"
+}

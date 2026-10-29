@@ -1,0 +1,45 @@
+{
+  "id": "catalyst-9200l-24t-4g",
+  "manufacturer": "Cisco",
+  "family": "Catalyst 9200L",
+  "model": "C9200L-24T-4G",
+  "kind": "switch",
+  "switchingMode": "layer2",
+  "poeBudgetWatts": 0,
+  "capabilities": {
+    "layer2": true,
+    "layer3": true,
+    "poe": false,
+    "stackingBandwidthGbps": 80
+  },
+  "portGroups": [
+    {
+      "namePattern": "GigabitEthernet1/0/{index}",
+      "count": 24,
+      "startIndex": 1,
+      "media": "copper",
+      "connector": "8P8C",
+      "supportedSpeedsMbps": [10, 100, 1000],
+      "supportedDuplexModes": ["full"],
+      "autoMdix": true,
+      "interfaceType": "ethernet"
+    },
+    {
+      "namePattern": "GigabitEthernet1/1/{index}",
+      "count": 4,
+      "startIndex": 1,
+      "media": "fiber",
+      "connector": "SFP",
+      "supportedSpeedsMbps": [1000],
+      "supportedDuplexModes": ["full"],
+      "autoMdix": false,
+      "interfaceType": "ethernet"
+    }
+  ],
+  "profileNotes": [
+    "This is the data-only fixed-uplink C9200L-24T-4G variant.",
+    "The listed 80 Gbps is the family datasheet stacking bandwidth; stacking is not emulated.",
+    "The device supports Layer 3 features, but the current switch engine only emulates Layer 2 forwarding."
+  ],
+  "source": "https://www.cisco.com/c/en/us/products/collateral/switches/catalyst-9200-series-switches/nb-06-cat9200-ser-data-sheet-cte-en.html"
+}

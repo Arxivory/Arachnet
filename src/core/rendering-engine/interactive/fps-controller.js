@@ -55,10 +55,10 @@ export class FpsController {
     let dz = 0;
     if (this.keys.has("KeyW")) { dx += forwardX; dy += forwardY; }
     if (this.keys.has("KeyS")) { dx -= forwardX; dy -= forwardY; }
-    if (this.keys.has("KeyD")) { dx += rightX; dy += rightY; }
-    if (this.keys.has("KeyA")) { dx -= rightX; dy -= rightY; }
-    if (this.keys.has("Space")) dz += 1;
-    if (this.keys.has("ShiftLeft") || this.keys.has("ShiftRight")) dz -= 1;
+    if (this.keys.has("KeyD")) { dx -= rightX; dy -= rightY; }
+    if (this.keys.has("KeyA")) { dx += rightX; dy += rightY; }
+    if (this.keys.has("KeyE")) dz += 1;
+    if (this.keys.has("KeyQ")) dz -= 1;
     const length = Math.hypot(dx, dy, dz);
     if (!length) return;
     const scale = this.moveSpeed * deltaSeconds / length;

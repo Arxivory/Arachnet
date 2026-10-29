@@ -28,6 +28,8 @@ test("configures a live interface and sends an ICMP ping through the emulated li
       pingResults={stateManager.getSnapshot().pingResults}
     />
   );
+  const logListener = jest.fn();
+  window.addEventListener("add-system-log", logListener);
 
   fireEvent.click(screen.getByRole("button", { name: /configure device/i }));
   const dialog = screen.getByRole("dialog", { name: /configure device/i });
@@ -40,7 +42,15 @@ test("configures a live interface and sends an ICMP ping through the emulated li
   fireEvent.change(screen.getByLabelText("Prefix length"), { target: { value: "24" } });
   fireEvent.click(screen.getByRole("button", { name: "Apply interface" }));
   expect(sourceInterface.ipv4Addresses).toEqual(["192.168.10.10/24"]);
+  expect(screen.queryByRole("dialog", { name: /configure device/i })).not.toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent("Configuration applied to Desktop PC");
+  expect(logListener.mock.calls[0][0].detail).toMatchObject({
+    category: "configuration",
+    deviceName: source.name,
+    message: "Applied IPv4 configuration to GigabitEthernet0/0",
+  });
 
+  fireEvent.click(screen.getByRole("button", { name: /configure device/i }));
   fireEvent.click(screen.getByRole("button", { name: "Ping" }));
   fireEvent.change(screen.getByLabelText("Destination IPv4"), {
     target: { value: "192.168.10.20" },
@@ -50,6 +60,11 @@ test("configures a live interface and sends an ICMP ping through the emulated li
 
   expect(screen.getByText(/Reply from 192\.168\.10\.20: seq=1/)).toBeInTheDocument();
   expect(stateManager.getSnapshot().pingResults[0].status).toBe("reply");
+  expect(logListener.mock.calls[logListener.mock.calls.length - 1][0].detail).toMatchObject({
+    category: "simulation",
+    deviceName: source.name,
+  });
+  window.removeEventListener("add-system-log", logListener);
 });
 
 test("shows validation errors and preserves invalid switch configuration", () => {
@@ -72,4 +87,25 @@ test("shows validation errors and preserves invalid switch configuration", () =>
 
   expect(screen.getByRole("alert")).toHaveTextContent("VLANs require unique IDs");
   expect([...networkSwitch.vlans.keys()]).toEqual(initialVlans);
+  expect(screen.getByRole("dialog", { name: /configure device/i })).toBeInTheDocument();
+});
+
+test("closes after successfully applying switch settings and confirms the change", () => {
+  const stateManager = new ApplicationStateManager({ seedDemoTopology: false });
+  const networkSwitch = stateManager.addDeviceFromProfile("catalyst-9200l-24t-4g", "floor-1");
+
+  render(
+    <PropertiesPanel
+      device={networkSwitch}
+      floors={stateManager.floors}
+      onApplySwitch={(deviceId, config) => stateManager.configureSwitch(deviceId, config)}
+    />
+  );
+  fireEvent.click(screen.getByRole("button", { name: /configure device/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Apply switch settings" }));
+
+  expect(screen.queryByRole("dialog", { name: /configure device/i })).not.toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent(
+    `Configuration applied to ${networkSwitch.name}`
+  );
 });

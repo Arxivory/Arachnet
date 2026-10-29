@@ -33,6 +33,7 @@ export default function DeviceConfigurationModal({
   onApplySwitch,
   onApplyRoutes,
   onPing,
+  onConfigurationApplied,
 }) {
   const [activeTab, setActiveTab] = useState("interfaces");
   const [interfaceDrafts, setInterfaceDrafts] = useState({});
@@ -97,6 +98,20 @@ export default function DeviceConfigurationModal({
     }));
   }
 
+  function completeConfiguration(message) {
+    window.dispatchEvent(new CustomEvent("add-system-log", {
+      detail: {
+        category: "configuration",
+        device: device.kind,
+        deviceName: device.name,
+        message,
+        location: device.floorId,
+      },
+    }));
+    onConfigurationApplied?.(`Configuration applied to ${device.name}`);
+    onClose?.();
+  }
+
   function applyInterface(networkInterface) {
     try {
       const draft = interfaceDrafts[networkInterface.id];
@@ -109,6 +124,7 @@ export default function DeviceConfigurationModal({
         defaultGateway: draft.defaultGateway,
       });
       setError("");
+      completeConfiguration(`Applied IPv4 configuration to ${networkInterface.name}`);
     } catch (applyError) {
       setError(applyError.message);
     }
@@ -144,6 +160,7 @@ export default function DeviceConfigurationModal({
         stpPriority: Number(stpPriority),
       });
       setError("");
+      completeConfiguration("Applied VLAN, port, and STP settings");
     } catch (applyError) {
       setError(applyError.message);
     }
@@ -154,6 +171,7 @@ export default function DeviceConfigurationModal({
       onApplyRoutes?.(device.id, nextRoutes);
       setRoutes(nextRoutes);
       setError("");
+      completeConfiguration("Static routes updated");
       return true;
     } catch (applyError) {
       setError(applyError.message);
@@ -180,6 +198,20 @@ export default function DeviceConfigurationModal({
       });
       setResults(sent ?? []);
       setError("");
+      (sent ?? []).forEach((result) => {
+        const detail = result.status === "reply"
+          ? `ICMP reply from ${result.responderIp}: seq=${result.sequence}, ${result.roundTripTimeMs.toFixed(3)} ms`
+          : `ICMP ${result.status}: ${result.sourceIp ?? device.name} → ${result.destinationIp}, seq=${result.sequence}${result.reason ? ` (${result.reason})` : ""}`;
+        window.dispatchEvent(new CustomEvent("add-system-log", {
+          detail: {
+            category: "simulation",
+            device: device.kind,
+            deviceName: device.name,
+            message: detail,
+            location: device.floorId,
+          },
+        }));
+      });
     } catch (pingError) {
       setResults([]);
       setError(pingError.message);

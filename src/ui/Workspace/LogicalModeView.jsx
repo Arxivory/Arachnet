@@ -170,11 +170,20 @@ export default function LogicalModeView({
     }
   }
 
+  function handleWorkspaceClick(event) {
+    if (interactionMode !== "select") return;
+    if (event.target.closest(
+      ".network-device-node, .cross-floor-device-indicator, .logical-cable-tool, .logical-port-picker, .logical-links-overlay"
+    )) return;
+    onSelectDevice?.(null);
+  }
+
   return (
     <div
       className={`render-surface logical-surface${interactionMode === "pan" ? " pan-enabled" : ""}${isPanning ? " is-panning" : ""}${cableMode ? " cable-mode-active" : ""}`}
       style={{ "--grid-x": `${offset.x}px`, "--grid-y": `${offset.y}px` }}
       {...handlers}
+      onClick={handleWorkspaceClick}
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
     >

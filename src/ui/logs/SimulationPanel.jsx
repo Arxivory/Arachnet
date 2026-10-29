@@ -1,5 +1,5 @@
-import { Trash2, BrushCleaning, FunnelPlus, X } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { Trash2, BrushCleaning, FunnelPlus } from "lucide-react";
+import { useState, useMemo } from "react";
 
 const EMPTY_FILTERS = {
   device: "",
@@ -8,37 +8,12 @@ const EMPTY_FILTERS = {
   date: "",
 };
 
-export default function ConsolePanel() {
-  // logData starts empty to wait for system events or OSPF saves
-  const [logData, setLogData] = useState([]);
+export default function SimulationPanel({ logData, setLogData }) {
   const [search, setSearch] = useState("");
   const [showClearModal, setShowClearModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [tempFilters, setTempFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
-
-  // --- NEW: Custom Event Listener for OSPF and System Logs ---
-  useEffect(() => {
-    const handleNewLog = (event) => {
-      const { device, deviceName, message, location } = event.detail;
-      
-      const newEntry = {
-        id: Date.now(),
-        device: device || "System",
-        deviceName: deviceName || "Unknown",
-        message: message || "No message provided",
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        date: new Date().toLocaleDateString('en-GB'), // DD/MM/YYYY
-        location: location || "Internal"
-      };
-
-      // Add new logs to the top of the array
-      setLogData((prevLogs) => [newEntry, ...prevLogs]);
-    };
-
-    window.addEventListener("add-system-log", handleNewLog);
-    return () => window.removeEventListener("add-system-log", handleNewLog);
-  }, []);
 
   const filteredLogs = useMemo(() => {
     return logData.filter((log) => {

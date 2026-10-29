@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Settings2 } from "lucide-react";
 import DeviceConfigurationModal from "./DeviceConfigurationModal";
 
@@ -13,18 +13,31 @@ export default function PropertiesPanel({
   onApplySwitch,
   onApplyRoutes,
   onPing,
+  onConfigurationApplied,
   pingResults = [],
 }) {
   const [nameError, setNameError] = useState("");
   const [draftName, setDraftName] = useState(device?.name ?? "");
   const [interfaceError, setInterfaceError] = useState("");
   const [configurationOpen, setConfigurationOpen] = useState(false);
+  const [configurationNotice, setConfigurationNotice] = useState("");
+  const noticeTimer = useRef(null);
 
   useEffect(() => {
     setDraftName(device?.name ?? "");
     setNameError("");
     setInterfaceError("");
   }, [device?.id, device?.name]);
+
+  useEffect(() => () => window.clearTimeout(noticeTimer.current), []);
+
+  function handleConfigurationApplied(message) {
+    setConfigurationNotice(message);
+    window.clearTimeout(noticeTimer.current);
+    noticeTimer.current = window.setTimeout(() => setConfigurationNotice(""), 3500);
+    onConfigurationApplied?.(message);
+    setConfigurationOpen(false);
+  }
 
   if (!device) {
     return (
@@ -44,6 +57,11 @@ export default function PropertiesPanel({
     <section className="properties-panel" aria-label="Properties">
       <h3>Properties</h3>
       <hr className="header-separator" />
+      {configurationNotice && (
+        <div className="configuration-success-toast" role="status" aria-live="polite">
+          {configurationNotice}
+        </div>
+      )}
       <div className="properties-group device-properties">
         <button
           type="button"
@@ -158,6 +176,7 @@ export default function PropertiesPanel({
           onApplySwitch={onApplySwitch}
           onApplyRoutes={onApplyRoutes}
           onPing={onPing}
+          onConfigurationApplied={handleConfigurationApplied}
         />
       )}
     </section>

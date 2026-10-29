@@ -101,10 +101,17 @@ export default function PhysicalModeView({
     }
   }
 
+  function handleWorkspaceClick(event) {
+    if (interactionMode !== "select") return;
+    if (event.target.closest(".network-device-node, .cross-floor-device-indicator")) return;
+    onSelectDevice?.(null);
+  }
+
   return (
     <div
       className={`render-surface physical-surface${interactionMode === "pan" ? " pan-enabled" : ""}${isPanning ? " is-panning" : ""}`}
       {...handlers}
+      onClick={handleWorkspaceClick}
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
     >

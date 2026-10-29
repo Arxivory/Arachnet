@@ -190,3 +190,36 @@ test("shows a device-level indicator for links to other floors", () => {
     }));
     expect(onShowCrossFloorConnections).toHaveBeenCalledWith(router.id);
 });
+
+test("deselects devices when the Logical or Physical workspace background is clicked", () => {
+    const onSelectLogical = jest.fn();
+    const logical = render(
+      <LogicalModeView
+        devices={[router]}
+        links={[]}
+        onSelectDevice={onSelectLogical}
+      />
+    );
+    fireEvent.click(logical.container.querySelector(".logical-surface"));
+    expect(onSelectLogical).toHaveBeenCalledWith(null);
+    onSelectLogical.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Cisco 1941 network device" }));
+    expect(onSelectLogical).not.toHaveBeenCalled();
+
+    logical.unmount();
+    const onSelectPhysical = jest.fn();
+    const physical = render(
+      <PhysicalModeView
+        floor={{ label: "Floor 1" }}
+        devices={[router]}
+        links={[]}
+        placements={{ "router-1": { floorplanPosition: [500, 300] } }}
+        onSelectDevice={onSelectPhysical}
+      />
+    );
+    fireEvent.click(physical.container.querySelector(".physical-surface"));
+    expect(onSelectPhysical).toHaveBeenCalledWith(null);
+    onSelectPhysical.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Cisco 1941 network device" }));
+    expect(onSelectPhysical).not.toHaveBeenCalled();
+});

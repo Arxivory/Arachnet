@@ -8,10 +8,11 @@ export default function ConsoleSimulationLogs() {
 
   // ── Lifted log state — survives tab switches ───────────────────────────────
   const [logData, setLogData] = useState([]);
+  const [simulationLogData, setSimulationLogData] = useState([]);
 
   useEffect(() => {
     const handleNewLog = (event) => {
-      const { device, deviceName, message, location } = event.detail;
+      const { category, device, deviceName, message, location } = event.detail;
       const now = new Date();
 
       const newEntry = {
@@ -28,7 +29,11 @@ export default function ConsoleSimulationLogs() {
         location:   location || "Unspecified",
       };
 
-      setLogData((prev) => [newEntry, ...prev]);
+      if (category === "simulation") {
+        setSimulationLogData((prev) => [newEntry, ...prev]);
+      } else {
+        setLogData((prev) => [newEntry, ...prev]);
+      }
     };
 
     window.addEventListener("add-system-log", handleNewLog);
@@ -42,7 +47,7 @@ export default function ConsoleSimulationLogs() {
       <div className="panel"> 
         {activeTab === "console"
           ? <ConsolePanel logData={logData} setLogData={setLogData} />
-          : <SimulationPanel />}
+          : <SimulationPanel logData={simulationLogData} setLogData={setSimulationLogData} />}
       </div>
     </div>
   );

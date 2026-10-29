@@ -121,13 +121,7 @@ export default function Toolbar({
       <div className="toolbar-group ml-auto">
         <div className="toolbar-row">
           <button className="simulate-btn">
-            <Network size={16} /> Generate Topology
-          </button>
-          <button className="simulate-btn">
-            <RefreshCw size={16} /> Sync Twin
-          </button>
-          <button className="simulate-btn">
-            <Play size={16} /> Simulate
+            <Network size={16} /> Route Cables
           </button>
         </div>
         <span className="toolbar-label">Network</span>

@@ -334,8 +334,7 @@ html,
 .device-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr); 
-  gap: 10px;
-  /* padding: 10px; */
+  gap: 8px;
 }
 
 .device-tile {
@@ -385,7 +384,7 @@ html,
 }
 
 .device-type {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 500;
   color: #475569;
   line-height: 1.25;

@@ -186,6 +186,10 @@ export class NetworkManager {
     return this.emulator.sendIpv4(deviceId, interfaceId, packet, options);
   }
 
+  ping(deviceId, interfaceId, destinationIp, options) {
+    return this.emulator.ping(deviceId, interfaceId, destinationIp, options);
+  }
+
   retryArp() {
     return this.emulator.retryArp();
   }

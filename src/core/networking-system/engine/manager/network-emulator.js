@@ -18,6 +18,105 @@ export class NetworkEmulator {
     this.clock = () => Date.now();
   }
 
+  ping(deviceId, interfaceId, destinationIp, { ttl = 64, sequence = 1 } = {}) {
+    const device = this.requireDevice(deviceId);
+    const networkInterface = device.interfaces.get(interfaceId);
+    if (!networkInterface) throw new Error(`Unknown network interface ${interfaceId} on ${device.name}.`);
+    const sourceAddress = networkInterface.ipv4Addresses[0]?.split("/")[0];
+    if (!sourceAddress) throw new Error(`Interface ${networkInterface.name} has no IPv4 address.`);
+    const port = device.ports.get(networkInterface.physicalPortId);
+    if (!networkInterface.isOperational(port)) {
+      return {
+        status: "unreachable",
+        sourceIp: sourceAddress,
+        destinationIp,
+        sequence,
+        roundTripTimeMs: null,
+        reason: "interface-down",
+        transmissions: 0,
+      };
+    }
+    if (device.kind === "router") {
+      this.routerEngine.refreshRoutes(device);
+      if (!device.fib.lookup(destinationIp)) {
+        return {
+          status: "unreachable",
+          sourceIp: sourceAddress,
+          destinationIp,
+          sequence,
+          roundTripTimeMs: null,
+          reason: "no-route",
+          transmissions: 0,
+        };
+      }
+    }
+
+    const startedAt = performance.now();
+    const packet = new IPv4Packet({
+      sourceIp: sourceAddress,
+      destinationIp,
+      protocol: IP_PROTOCOL.ICMP,
+      ttl,
+      payload: {
+        type: ICMP_TYPE.ECHO_REQUEST,
+        code: 0,
+        identifier: 1,
+        sequence,
+      },
+    });
+    const result = device.kind === "router"
+      ? this.sendRouterIpv4(device, packet)
+      : this.sendIpv4(deviceId, interfaceId, packet);
+    const finishedAt = performance.now();
+    const response = result.delivered.find(({ deviceId: recipientId, packet }) =>
+      recipientId === deviceId &&
+      packet.protocol === IP_PROTOCOL.ICMP &&
+      [ICMP_TYPE.ECHO_REPLY, ICMP_TYPE.DESTINATION_UNREACHABLE, ICMP_TYPE.TIME_EXCEEDED]
+        .includes(packet.payload?.type)
+    );
+
+    if (!response) {
+      return {
+        status: "timeout",
+        sourceIp: sourceAddress,
+        destinationIp,
+        sequence,
+        roundTripTimeMs: null,
+        reason: result.dropped[0]?.reason ?? "no-icmp-response",
+        transmissions: result.transmissions,
+      };
+    }
+
+    const { type, code } = response.packet.payload;
+    return {
+      status: type === ICMP_TYPE.ECHO_REPLY
+        ? "reply"
+        : type === ICMP_TYPE.TIME_EXCEEDED
+          ? "time-exceeded"
+          : "unreachable",
+      sourceIp: sourceAddress,
+      destinationIp,
+      sequence,
+      roundTripTimeMs: Math.max(0, finishedAt - startedAt),
+      code: type === ICMP_TYPE.ECHO_REPLY ? 0 : code,
+      responderIp: response.packet.sourceIp,
+      transmissions: result.transmissions,
+    };
+  }
+
+  sendRouterIpv4(router, packet) {
+    const routed = this.routerEngine.routePacket(router, packet);
+    const result = { delivered: [], dropped: [], transmissions: 0 };
+    if (routed.dropped) result.dropped.push({ reason: routed.reason });
+    for (const output of routed.outputs) {
+      const transmission = this.sendFrame(output.portId, output.frame);
+      result.delivered.push(...transmission.delivered);
+      result.dropped.push(...transmission.dropped);
+      result.transmissions += transmission.transmissions;
+    }
+    return result;
+  }
+
   sendIpv4(deviceId, interfaceId, packet, { nextHopIp = null } = {}) {
     const device = this.requireDevice(deviceId);
     const networkInterface = device.interfaces.get(interfaceId);
@@ -127,6 +226,9 @@ export class NetworkEmulator {
             reason: result.reason,
             packet: result.packet,
           });
+        }
+        if (result.deliveredPacket) {
+          context.delivered.push({ deviceId: current.device.id, packet: result.deliveredPacket });
         }
         for (const output of result.outputs) this.enqueueFromPort(context, output.portId, output.frame);
       } else {

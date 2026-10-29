@@ -163,6 +163,17 @@ describe("Layer 3 forwarding", () => {
     );
     expect(unreachableResult.delivered.map(({ deviceId }) => deviceId)).toEqual(["pc-a"]);
     expect(hostA.receivedFrames.at(-1).packet.payload.type).toBe(ICMP_TYPE.DESTINATION_UNREACHABLE);
+
+    expect(manager.ping("pc-a", "pc-a-interface", "10.0.2.20", { sequence: 10 }))
+      .toMatchObject({ status: "reply", responderIp: "10.0.2.20" });
+    expect(manager.ping("pc-a", "pc-a-interface", "10.0.2.20", {
+      sequence: 11,
+      ttl: 1,
+    })).toMatchObject({ status: "time-exceeded" });
+    expect(manager.ping("pc-a", "pc-a-interface", "203.0.113.9", { sequence: 12 }))
+      .toMatchObject({ status: "unreachable", code: 0 });
+    expect(manager.ping("r1", "r1-interface-a", "10.0.2.20", { sequence: 13 }))
+      .toMatchObject({ status: "reply", responderIp: "10.0.2.20" });
   });
 
   test("uses static routes with longest-prefix selection", () => {

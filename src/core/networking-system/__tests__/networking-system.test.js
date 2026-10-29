@@ -5,6 +5,7 @@ import {
   PC,
   PhysicalPort,
   PoeManager,
+  SpanningTree,
   Switch,
 } from "..";
 
@@ -200,4 +201,21 @@ describe("network hardware and topology", () => {
     expect(accessSwitch.portModes.get("port-1")).toEqual({ mode: "access", accessVlan: 20 });
     expect(() => accessSwitch.configureTrunkPort("port-1", [1, 20, 999], 1)).toThrow("VLAN 999 is not defined");
   });
+});
+
+test("STP bridge priority participates in root bridge elections", () => {
+  const tree = new SpanningTree({ bridgeId: "local", priority: 4096 });
+  tree.receiveBpdu("uplink", {
+    rootId: "remote",
+    rootPriority: 8192,
+    rootPathCost: 0,
+    bridgeId: "remote",
+    bridgePriority: 8192,
+  });
+  expect(tree.rootId).toBe("local");
+
+  tree.priority = 16384;
+  tree.recomputeRoot();
+  expect(tree.rootId).toBe("remote");
+  expect(tree.rootPriority).toBe(8192);
 });

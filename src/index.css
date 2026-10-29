@@ -799,6 +799,304 @@ html,
   font-size: 11px;
 }
 
+.configure-device-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 7px 9px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #30343b;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.configure-device-button:hover {
+  background: #f3f4f6;
+}
+
+.device-config-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.device-config-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, calc(100vw - 40px));
+  max-height: min(820px, calc(100dvh - 40px));
+  overflow: hidden;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.2);
+}
+
+.device-config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.device-config-header h2,
+.device-config-header p,
+.device-config-card h3 {
+  margin: 0;
+}
+
+.device-config-header h2 {
+  color: #1f2937;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.device-config-header p {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 11px;
+}
+
+.device-config-close {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.device-config-close:hover {
+  background: #f3f4f6;
+}
+
+.device-config-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 16px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.device-config-tabs button {
+  padding: 8px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #6b7280;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.device-config-tabs button.is-active {
+  border-bottom-color: #3b82f6;
+  color: #1d4ed8;
+}
+
+.device-config-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 20px 20px;
+}
+
+.device-config-section {
+  display: grid;
+  gap: 12px;
+}
+
+.device-config-help {
+  margin: 0;
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.device-config-card {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.device-config-card h3 {
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.device-config-card label {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  color: #4b5563;
+  font-size: 10px;
+}
+
+.device-config-card input,
+.device-config-card textarea,
+.device-config-card select,
+.device-config-port-row input,
+.device-config-port-row select,
+.device-config-vlan-row input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  background: #fff;
+  color: #1f2937;
+  font-size: 11px;
+}
+
+.device-config-card textarea {
+  box-sizing: border-box;
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.device-config-primary {
+  justify-self: start;
+  padding: 7px 11px;
+  border: 1px solid #2563eb;
+  border-radius: 5px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.device-config-primary:hover {
+  background: #1d4ed8;
+}
+
+.device-config-vlan-row,
+.device-config-port-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.device-config-vlan-row label {
+  display: grid;
+  gap: 5px;
+  color: #4b5563;
+  font-size: 10px;
+}
+
+.device-config-vlan-row button,
+.device-config-route-list button,
+.device-config-vlan-row > button {
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  background: #fff;
+  color: #4b5563;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.device-config-vlan-row button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.device-config-port-row {
+  grid-template-columns: minmax(140px, 1fr) 100px minmax(0, 1fr);
+  padding: 6px 0;
+  border-top: 1px solid #f3f4f6;
+}
+
+.device-config-port-row strong {
+  overflow: hidden;
+  color: #4b5563;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-config-inline-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.device-config-route-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.device-config-route-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #4b5563;
+  font-size: 10px;
+}
+
+.device-config-results {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border-radius: 6px;
+  background: #111827;
+  color: #e5e7eb;
+  font-family: Consolas, monospace;
+  font-size: 10px;
+}
+
+.ping-result {
+  margin: 0;
+}
+
+.ping-reply {
+  color: #86efac;
+}
+
+.ping-timeout,
+.ping-unreachable,
+.ping-time-exceeded {
+  color: #fca5a5;
+}
+
+.device-config-error {
+  margin: 12px 0 0;
+  color: #b91c1c;
+  font-size: 11px;
+}
+
+@media (max-width: 600px) {
+  .device-config-overlay {
+    padding: 8px;
+  }
+
+  .device-config-port-row {
+    grid-template-columns: minmax(100px, 1fr) 90px minmax(0, 1fr);
+  }
+}
+
 .hierarchy-panel li {
   margin-bottom: 2px;
   position: relative;

@@ -79,6 +79,8 @@ export class Switch extends Device {
       camTable: this.camTable.toJSON(),
       spanningTree: {
         rootId: this.spanningTree.rootId,
+        rootPriority: this.spanningTree.rootPriority ?? this.spanningTree.priority,
+        priority: this.spanningTree.priority,
         rootPathCost: this.spanningTree.rootPathCost,
         rootPortId: this.spanningTree.rootPortId,
         portStates: Object.fromEntries(this.spanningTree.portStates),

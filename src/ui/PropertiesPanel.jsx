@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Settings2 } from "lucide-react";
+import DeviceConfigurationModal from "./DeviceConfigurationModal";
 
 export default function PropertiesPanel({
   device = null,
@@ -7,10 +9,16 @@ export default function PropertiesPanel({
   onRename,
   onPositionChange,
   onInterfaceAdminChange,
+  onApplyInterface,
+  onApplySwitch,
+  onApplyRoutes,
+  onPing,
+  pingResults = [],
 }) {
   const [nameError, setNameError] = useState("");
   const [draftName, setDraftName] = useState(device?.name ?? "");
   const [interfaceError, setInterfaceError] = useState("");
+  const [configurationOpen, setConfigurationOpen] = useState(false);
 
   useEffect(() => {
     setDraftName(device?.name ?? "");
@@ -37,6 +45,14 @@ export default function PropertiesPanel({
       <h3>Properties</h3>
       <hr className="header-separator" />
       <div className="properties-group device-properties">
+        <button
+          type="button"
+          className="configure-device-button"
+          onClick={() => setConfigurationOpen(true)}
+        >
+          <Settings2 size={14} />
+          Configure device
+        </button>
         <label htmlFor="device-name">Name</label>
         <input
           id="device-name"
@@ -133,6 +149,17 @@ export default function PropertiesPanel({
         </ul>
         {interfaceError && <p className="property-error" role="alert">{interfaceError}</p>}
       </details>
+      {configurationOpen && (
+        <DeviceConfigurationModal
+          device={device}
+          pingResults={pingResults}
+          onClose={() => setConfigurationOpen(false)}
+          onApplyInterface={onApplyInterface}
+          onApplySwitch={onApplySwitch}
+          onApplyRoutes={onApplyRoutes}
+          onPing={onPing}
+        />
+      )}
     </section>
   );
 }

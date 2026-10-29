@@ -28,6 +28,32 @@ junction extraction, project-specific plan calibration, and GNN inference are
 future integration steps. Optical links use matching fiber ports and are
 excluded from the copper 100-meter channel check.
 
+## Device Configuration and Connectivity Simulation
+
+The Properties panel's **Configure device** dialog writes settings to the same
+networking devices used by packet forwarding:
+
+- Ethernet interfaces accept IPv4 CIDR addresses and an on-link default
+  gateway. Duplicate addresses and off-link gateways are rejected.
+- Switches accept VLAN definitions, access/trunk port assignments, native and
+  allowed VLANs, and an STP bridge priority. VLAN rules are enforced by the
+  802.1Q switching engine; bridge priority participates in root elections when
+  BPDUs are received.
+- Routers accept static routes, which are installed in the RIB/FIB. Connected
+  routes continue to be derived from operational addressed interfaces.
+- The ICMP ping tool sends echo requests through the configured interfaces,
+  links, VLANs, ARP, and router forwarding pipeline. It reports echo replies,
+  router-generated time-exceeded/destination-unreachable responses, source
+  interface/no-route failures, or timeouts when no response returns.
+
+Ping is a synchronous deterministic simulation: a timeout means the traversal
+produced no ICMP response, not that a configurable wall-clock timer expired.
+The displayed reply time measures local emulator execution and is not modeled
+wire latency. STP priority is configurable, but periodic BPDU generation and
+timer-driven STP convergence are not yet simulated. Other legacy dialogs
+(NAT, OSPF, ACL, DHCP, and management services) are not shown as active
+configuration because those behaviors are not implemented in the L2/L3 engine.
+
 ---
 
 ## Thesis Core Concepts & Innovations

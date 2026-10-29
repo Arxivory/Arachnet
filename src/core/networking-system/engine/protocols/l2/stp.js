@@ -35,8 +35,10 @@ export class SpanningTree {
   createBpdu(portId = null) {
     return {
       rootId: this.rootId,
+      rootPriority: this.rootPriority ?? this.priority,
       rootPathCost: this.rootPathCost,
       bridgeId: this.bridgeId,
+      bridgePriority: this.priority,
       senderPortId: portId,
     };
   }
@@ -51,17 +53,27 @@ export class SpanningTree {
   }
 
   recomputeRoot() {
-    let best = { rootId: this.bridgeId, rootPathCost: 0, bridgeId: this.bridgeId, portId: null };
+    let best = {
+      rootId: this.bridgeId,
+      rootPriority: this.priority,
+      rootPathCost: 0,
+      bridgeId: this.bridgeId,
+      bridgePriority: this.priority,
+      portId: null,
+    };
     for (const [portId, bpdu] of this.neighbors) {
       const candidate = {
         rootId: bpdu.rootId,
+        rootPriority: bpdu.rootPriority ?? 32768,
         rootPathCost: bpdu.rootPathCost + this.pathCost,
         bridgeId: bpdu.bridgeId,
+        bridgePriority: bpdu.bridgePriority ?? 32768,
         portId,
       };
       if (this.compare(candidate, best) < 0) best = candidate;
     }
     this.rootId = best.rootId;
+    this.rootPriority = best.rootPriority;
     this.rootPathCost = best.rootPathCost;
     this.rootPortId = best.portId;
     for (const portId of this.neighbors.keys()) {
@@ -70,8 +82,10 @@ export class SpanningTree {
   }
 
   compare(a, b) {
-    return a.rootId.localeCompare(b.rootId) ||
+    return a.rootPriority - b.rootPriority ||
+      a.rootId.localeCompare(b.rootId) ||
       a.rootPathCost - b.rootPathCost ||
+      a.bridgePriority - b.bridgePriority ||
       a.bridgeId.localeCompare(b.bridgeId) ||
       String(a.portId).localeCompare(String(b.portId));
   }

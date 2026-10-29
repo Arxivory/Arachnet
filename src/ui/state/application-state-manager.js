@@ -9,9 +9,11 @@ import {
   PhysicalPort,
   Router,
   Server,
+  StaticRoute,
   Switch,
   WirelessAP,
 } from "../../core/networking-system";
+import { ipv4PrefixContains, ipv4ToInt, parseIpv4Cidr } from "../../core/networking-system/engine/utils/ipv4";
 import {
   DEMO_DEVICE_SEEDS,
   DEMO_FLOORS,
@@ -101,6 +103,8 @@ export class ApplicationStateManager {
     this.selectedDeviceId = null;
     this.nextDeviceNumber = 1;
     this.nextLinkNumber = 1;
+    this.nextPingSequence = 1;
+    this.pingResults = [];
     this.snapshot = null;
 
     if (seedDemoTopology) this.loadDemoTopology();
@@ -247,6 +251,7 @@ export class ApplicationStateManager {
         },
       ])),
       selectedDeviceId: this.selectedDeviceId,
+      pingResults: this.pingResults.map((result) => ({ ...result })),
     };
     this.listeners.forEach((listener) => listener());
   }
@@ -428,6 +433,179 @@ export class ApplicationStateManager {
     );
     this.publish();
     return networkInterface;
+  }
+
+  configureInterface(deviceId, interfaceId, { ipv4Addresses, defaultGateway = "" }) {
+    const device = this.networkManager.topology.devices.get(deviceId);
+    if (!device) throw new Error(`Unknown network device: ${deviceId}`);
+    const networkInterface = device.interfaces.get(interfaceId);
+    if (!networkInterface) throw new Error(`Unknown network interface: ${interfaceId}`);
+    if (!Array.isArray(ipv4Addresses)) {
+      throw new TypeError("IPv4 addresses must be provided as a list of CIDR prefixes.");
+    }
+
+    const normalizedAddresses = ipv4Addresses.map((address) => {
+      const parsed = parseIpv4Cidr(address.trim());
+      return `${parsed.address}/${parsed.prefixLength}`;
+    });
+    if (new Set(normalizedAddresses.map((address) => address.split("/")[0])).size !==
+      normalizedAddresses.length) {
+      throw new TypeError("An interface cannot have duplicate IPv4 addresses.");
+    }
+
+    const gateway = defaultGateway.trim() || null;
+    if (device.kind === "router" && gateway) {
+      throw new TypeError("Configure router gateways as static routes, not interface default gateways.");
+    }
+    if (gateway) {
+      ipv4ToInt(gateway);
+      if (!normalizedAddresses.some((address) => ipv4PrefixContains(address, gateway))) {
+        throw new TypeError("The default gateway must be on a configured interface network.");
+      }
+    }
+
+    const configuredAddresses = new Set(normalizedAddresses.map((address) => address.split("/")[0]));
+    for (const otherDevice of this.networkManager.topology.devices.values()) {
+      for (const otherInterface of otherDevice.interfaces.values()) {
+        if (otherInterface === networkInterface) continue;
+        if (otherInterface.ipv4Addresses.some((address) =>
+          configuredAddresses.has(address.split("/")[0])
+        )) {
+          throw new TypeError("An IPv4 address is already configured on another interface.");
+        }
+      }
+    }
+
+    networkInterface.ipv4Addresses = normalizedAddresses;
+    networkInterface.defaultGateway = gateway;
+    this.networkManager.emit("interface-addresses-changed", { device, networkInterface });
+    this.publish();
+    return networkInterface;
+  }
+
+  configureSwitch(deviceId, { vlans, portModes, stpPriority }) {
+    const device = this.networkManager.topology.devices.get(deviceId);
+    if (!device) throw new Error(`Unknown network device: ${deviceId}`);
+    if (device.kind !== "switch") throw new TypeError("VLAN and STP settings require a switch.");
+    if (!Array.isArray(vlans) || !Array.isArray(portModes)) {
+      throw new TypeError("Switch configuration requires VLAN and port-mode lists.");
+    }
+    if (!Number.isInteger(stpPriority) || stpPriority < 0 || stpPriority > 61440 ||
+      stpPriority % 4096 !== 0) {
+      throw new RangeError("STP priority must be a multiple of 4096 from 0 through 61440.");
+    }
+
+    const vlanMap = new Map();
+    for (const vlan of vlans) {
+      if (!Number.isInteger(vlan.id) || vlan.id < 1 || vlan.id > 4094 ||
+        typeof vlan.name !== "string" || !vlan.name.trim() || vlanMap.has(vlan.id)) {
+        throw new TypeError("VLANs require unique IDs from 1 through 4094 and non-empty names.");
+      }
+      vlanMap.set(vlan.id, { id: vlan.id, name: vlan.name.trim() });
+    }
+    if (!vlanMap.has(1)) throw new TypeError("VLAN 1 must remain configured.");
+
+    const modeMap = new Map();
+    if (portModes.length !== device.ports.size) {
+      throw new TypeError("Every switch port must have a VLAN mode configured.");
+    }
+    for (const setting of portModes) {
+      if (!device.ports.has(setting.portId) || modeMap.has(setting.portId)) {
+        throw new TypeError(`Invalid or duplicate switch port: ${setting.portId}`);
+      }
+      if (setting.mode === "access") {
+        if (!vlanMap.has(setting.accessVlan)) {
+          throw new TypeError(`Access VLAN ${setting.accessVlan} is not defined.`);
+        }
+        modeMap.set(setting.portId, { mode: "access", accessVlan: setting.accessVlan });
+      } else if (setting.mode === "trunk") {
+        if (!Array.isArray(setting.allowedVlans) ||
+          !setting.allowedVlans.includes(setting.nativeVlan) ||
+          setting.allowedVlans.some((vlanId) => !vlanMap.has(vlanId))) {
+          throw new TypeError("A trunk must allow its native VLAN and only configured VLANs.");
+        }
+        modeMap.set(setting.portId, {
+          mode: "trunk",
+          allowedVlans: [...new Set(setting.allowedVlans)].sort((a, b) => a - b),
+          nativeVlan: setting.nativeVlan,
+        });
+      } else {
+        throw new TypeError(`Unsupported switch port mode: ${setting.mode}`);
+      }
+    }
+
+    device.vlans = vlanMap;
+    device.portModes = modeMap;
+    device.spanningTree.priority = stpPriority;
+    device.spanningTree.recomputeRoot();
+    this.networkManager.emit("switch-configuration-changed", { device });
+    this.publish();
+    return device;
+  }
+
+  configureStaticRoutes(deviceId, routes) {
+    const device = this.networkManager.topology.devices.get(deviceId);
+    if (!device) throw new Error(`Unknown network device: ${deviceId}`);
+    if (device.kind !== "router") throw new TypeError("Static routes require a router.");
+    if (!Array.isArray(routes)) throw new TypeError("Static routes must be provided as a list.");
+
+    const configuredRoutes = routes.map((route) => {
+      const configured = new StaticRoute(route);
+      if (configured.interfaceId && !device.interfaces.has(configured.interfaceId)) {
+        throw new TypeError(`Unknown route interface: ${configured.interfaceId}`);
+      }
+      return configured;
+    });
+    const staticEntries = configuredRoutes.map((route) => ({ ...route, type: "static" }));
+    device.staticRoutes = configuredRoutes;
+    device.rib.routes = [
+      ...device.rib.routes.filter((route) => route.type === "connected"),
+      ...staticEntries,
+    ];
+    device.fib.replaceRoutes(device.rib.getRoutes());
+    this.publish();
+    return configuredRoutes;
+  }
+
+  ping(deviceId, interfaceId, destinationIp, { count = 4, ttl = 64 } = {}) {
+    if (!Number.isInteger(count) || count < 1 || count > 10) {
+      throw new RangeError("Ping count must be an integer from 1 through 10.");
+    }
+    ipv4ToInt(destinationIp);
+    if (!Number.isInteger(ttl) || ttl < 1 || ttl > 255) {
+      throw new RangeError("Ping TTL must be an integer from 1 through 255.");
+    }
+
+    const results = [];
+    for (let index = 0; index < count; index += 1) {
+      const sequence = this.nextPingSequence;
+      this.nextPingSequence += 1;
+      try {
+        results.push(this.networkManager.ping(deviceId, interfaceId, destinationIp, {
+          ttl,
+          sequence,
+        }));
+      } catch (error) {
+        if (error.message.startsWith("No route to ")) {
+          const device = this.networkManager.topology.devices.get(deviceId);
+          const networkInterface = device?.interfaces.get(interfaceId);
+          results.push({
+            status: "unreachable",
+            sourceIp: networkInterface?.ipv4Addresses[0]?.split("/")[0] ?? null,
+            destinationIp,
+            sequence,
+            roundTripTimeMs: null,
+            reason: "no-route",
+            transmissions: 0,
+          });
+        } else {
+          throw error;
+        }
+      }
+    }
+    this.pingResults = [...results, ...this.pingResults].slice(0, 50);
+    this.publish();
+    return results;
   }
 
   rerouteLinksForDevice(deviceId) {

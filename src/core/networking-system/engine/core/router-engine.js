@@ -1,7 +1,7 @@
 import { EthernetFrame, ETHER_TYPE } from "../definitions/frame";
 import { IP_PROTOCOL, IPv4Packet } from "../definitions/packet";
 import { Icmp, ICMP_TYPE } from "../protocols/l3/icmp";
-import { interfaceAddresses, ipv4ToInt } from "../utils/ipv4";
+import { interfaceAddresses, ipv4PrefixContains, ipv4ToInt } from "../utils/ipv4";
 
 const BROADCAST_MAC = "ff:ff:ff:ff:ff:ff";
 
@@ -28,7 +28,12 @@ export class RouterEngine {
       if (packet.protocol === IP_PROTOCOL.ICMP && packet.payload?.type === ICMP_TYPE.ECHO_REQUEST) {
         return this.routePacket(router, Icmp.echoReply(packet, packet.destinationIp));
       }
-      return { outputs: [], dropped: false, reason: "packet-delivered-to-router" };
+      return {
+        outputs: [],
+        dropped: false,
+        reason: "packet-delivered-to-router",
+        deliveredPacket: packet,
+      };
     }
     this.refreshRoutes(router);
     if (!router.fib.lookup(packet.destinationIp)) {
@@ -76,7 +81,13 @@ export class RouterEngine {
     if (!route) {
       return { outputs: [], dropped: true, reason: "no-route", packet };
     }
-    const networkInterface = router.interfaces.get(route.interfaceId);
+    const nextHop = route.nextHop || packet.destinationIp;
+    const connectedNextHopRoute = route.interfaceId
+      ? null
+      : router.rib.getRoutes().find((candidate) =>
+        candidate.type === "connected" && ipv4PrefixContains(candidate, nextHop)
+      );
+    const networkInterface = router.interfaces.get(route.interfaceId ?? connectedNextHopRoute?.interfaceId);
     if (!networkInterface || !networkInterface.adminEnabled || networkInterface.lineStatus !== "up") {
       return { outputs: [], dropped: true, reason: "route-interface-down", packet };
     }
@@ -85,7 +96,6 @@ export class RouterEngine {
       return { outputs: [], dropped: true, reason: "route-port-down", packet };
     }
 
-    const nextHop = route.nextHop || packet.destinationIp;
     const destinationMac = router.arpCache.lookup(nextHop);
     if (destinationMac) {
       return {

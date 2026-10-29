@@ -107,6 +107,102 @@ describe("ApplicationStateManager", () => {
     expect(state.getSnapshot().links).toHaveLength(0);
   });
 
+  test("applies interface addressing and switch VLAN settings to the forwarding devices", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const source = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const destination = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const networkSwitch = state.addDeviceFromProfile("catalyst-9200l-24t-4g", "floor-1");
+    const sourceInterface = [...source.interfaces.values()][0];
+    const destinationInterface = [...destination.interfaces.values()][0];
+    const switchPorts = [...networkSwitch.ports.values()];
+    state.connectEthernet([...source.ports.values()][0].id, switchPorts[0].id);
+    state.connectEthernet([...destination.ports.values()][0].id, switchPorts[1].id);
+
+    state.configureInterface(source.id, sourceInterface.id, {
+      ipv4Addresses: ["192.168.10.10/24"],
+    });
+    state.configureInterface(destination.id, destinationInterface.id, {
+      ipv4Addresses: ["192.168.10.20/24"],
+    });
+    const portModes = [...networkSwitch.ports.keys()].map((portId) => ({
+      portId,
+      mode: "access",
+      accessVlan: 1,
+    }));
+    portModes[0].accessVlan = 10;
+    portModes[1].accessVlan = 10;
+    state.configureSwitch(networkSwitch.id, {
+      vlans: [{ id: 1, name: "default" }, { id: 10, name: "users" }],
+      portModes,
+      stpPriority: 4096,
+    });
+
+    const result = state.ping(source.id, sourceInterface.id, "192.168.10.20", { count: 1 });
+    expect(result[0].status).toBe("reply");
+    expect(sourceInterface.ipv4Addresses).toEqual(["192.168.10.10/24"]);
+    expect(networkSwitch.portModes.get(switchPorts[0].id)).toEqual({
+      mode: "access",
+      accessVlan: 10,
+    });
+    expect(networkSwitch.spanningTree.priority).toBe(4096);
+
+    portModes[1].accessVlan = 1;
+    state.configureSwitch(networkSwitch.id, {
+      vlans: [{ id: 1, name: "default" }, { id: 10, name: "users" }],
+      portModes,
+      stpPriority: 4096,
+    });
+    expect(state.ping(source.id, sourceInterface.id, "192.168.10.20", { count: 1 })[0].status)
+      .toBe("timeout");
+  });
+
+  test("validates IP configuration and installs router static routes in the FIB", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const pc = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const router = state.addDeviceFromProfile("isr-4331", "floor-1");
+    const pcInterface = [...pc.interfaces.values()][0];
+    const routerInterface = [...router.interfaces.values()][0];
+
+    state.configureInterface(pc.id, pcInterface.id, {
+      ipv4Addresses: ["10.0.0.2/24"],
+      defaultGateway: "10.0.0.1",
+    });
+    expect(() => state.configureInterface(router.id, routerInterface.id, {
+      ipv4Addresses: ["10.0.0.2/24"],
+    })).toThrow(/already configured/);
+    expect(() => state.configureInterface(pc.id, pcInterface.id, {
+      ipv4Addresses: ["10.0.0.2/24"],
+      defaultGateway: "192.0.2.1",
+    })).toThrow(/on a configured interface network/);
+
+    state.configureStaticRoutes(router.id, [{
+      destination: "192.0.2.0/24",
+      nextHop: "10.0.0.2",
+      interfaceId: routerInterface.id,
+    }]);
+    expect(router.fib.lookup("192.0.2.10")).toMatchObject({
+      type: "static",
+      interfaceId: routerInterface.id,
+    });
+  });
+
+  test("reports an unreachable ping when the source has no route", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    const pc = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");
+    const networkSwitch = state.addDeviceFromProfile("catalyst-9200l-24t-4g", "floor-1");
+    const networkInterface = [...pc.interfaces.values()][0];
+    state.connectEthernet(
+      [...pc.ports.values()][0].id,
+      [...networkSwitch.ports.values()][0].id
+    );
+    state.configureInterface(pc.id, networkInterface.id, {
+      ipv4Addresses: ["10.0.0.2/24"],
+    });
+
+    expect(state.ping(pc.id, networkInterface.id, "203.0.113.1", { count: 1 })[0])
+      .toMatchObject({ status: "unreachable", reason: "no-route" });
+  });
+
   test("routes cross-floor links through a riser and reroutes when a device moves in 3D", () => {
     const state = new ApplicationStateManager({ seedDemoTopology: false });
     const first = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");

@@ -75,6 +75,15 @@ export default function App() {
               stateManager.setDevicePosition(deviceId, axis, value)}
             onInterfaceAdminChange={(deviceId, interfaceId, enabled) =>
               stateManager.setInterfaceAdminEnabled(deviceId, interfaceId, enabled)}
+            onApplyInterface={(deviceId, interfaceId, config) =>
+              stateManager.configureInterface(deviceId, interfaceId, config)}
+            onApplySwitch={(deviceId, config) =>
+              stateManager.configureSwitch(deviceId, config)}
+            onApplyRoutes={(deviceId, routes) =>
+              stateManager.configureStaticRoutes(deviceId, routes)}
+            onPing={(deviceId, interfaceId, destinationIp, options) =>
+              stateManager.ping(deviceId, interfaceId, destinationIp, options)}
+            pingResults={applicationState.pingResults}
           />
         </div>
       </div>

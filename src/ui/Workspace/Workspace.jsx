@@ -8,7 +8,7 @@ import InteractiveModeView from "./InteractiveModeView";
 import { DEMO_DEVICES, DEMO_FLOORS, DEMO_LINKS } from "./demo-data";
 import { useViewState } from "./useViewState";
 
-export default function Workspace({ viewController }) {
+export default function Workspace({ viewController, interactionMode = "select" }) {
   const viewState = useViewState(viewController);
   const floor = DEMO_FLOORS.find(({ id }) => id === viewState.floorId) ?? DEMO_FLOORS[0];
   const floorDevices = useMemo(
@@ -28,10 +28,23 @@ export default function Workspace({ viewController }) {
   let modeContent;
   switch (viewState.mode) {
     case VIEW_MODES.LOGICAL:
-      modeContent = <LogicalModeView devices={floorDevices} links={floorLinks} />;
+      modeContent = (
+        <LogicalModeView
+          devices={floorDevices}
+          links={floorLinks}
+          interactionMode={interactionMode}
+        />
+      );
       break;
     case VIEW_MODES.PHYSICAL:
-      modeContent = <PhysicalModeView floor={floor} devices={floorDevices} links={floorLinks} />;
+      modeContent = (
+        <PhysicalModeView
+          floor={floor}
+          devices={floorDevices}
+          links={floorLinks}
+          interactionMode={interactionMode}
+        />
+      );
       break;
     case VIEW_MODES.CAD:
       modeContent = <CadModeView floor={floor} />;

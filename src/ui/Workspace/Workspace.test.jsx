@@ -37,6 +37,8 @@ describe("rendering workspace UI", () => {
 
     expect(screen.getByText("Logical topology canvas")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Logical" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Select" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Pan" })).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(screen.getByRole("button", { name: "Physical" }));
     expect(screen.getByText("Physical floorplan canvas")).toBeInTheDocument();
@@ -44,6 +46,7 @@ describe("rendering workspace UI", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "3D" }));
     expect(screen.getByText("3D CAD canvas")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Pan" })).not.toBeInTheDocument();
   });
 
   test("floor selection is available for floor modes and remembered after Interactive", () => {

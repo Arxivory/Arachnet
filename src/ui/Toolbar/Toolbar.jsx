@@ -7,6 +7,7 @@ import {
   FilePlus,
   Save,
   MousePointer,
+  Hand,
   Trash2,
   Copy,
   Building,
@@ -26,15 +27,17 @@ const MODES = [
   { id: VIEW_MODES.INTERACTIVE, label: "Interactive", Icon: Compass },
 ];
 
-export default function Toolbar({ viewController }) {
+export default function Toolbar({
+  viewController,
+  interactionMode = "select",
+  onInteractionModeChange = () => {},
+}) {
   const viewState = useViewState(viewController);
 
   return (
     <div className="toolbar">
       <div className="toolbar-group">
         <div className="toolbar-row">
-          <button className="toolbar-btn"><FilePlus size={16} /> New</button>
-          <button className="toolbar-btn"><File size={16} /> Open</button>
           <button className="toolbar-btn"><Building size={16} />Import BIM</button>
           <button className="toolbar-btn"><FileDown size={16} />Export Layout</button>
           <button className="toolbar-btn"><Save size={16} /> Save</button>
@@ -60,10 +63,23 @@ export default function Toolbar({ viewController }) {
               <Redo2 size={16} />
             </button>
           <button
-            className="toolbar-btn"
+            className={`toolbar-btn${interactionMode === "select" ? " active" : ""}`}
+            type="button"
+            aria-pressed={interactionMode === "select"}
+            onClick={() => onInteractionModeChange("select")}
           >
             <MousePointer size={16} /> Select
           </button>
+          {(viewState.mode === VIEW_MODES.LOGICAL || viewState.mode === VIEW_MODES.PHYSICAL) && (
+            <button
+              className={`toolbar-btn${interactionMode === "pan" ? " active" : ""}`}
+              type="button"
+              aria-pressed={interactionMode === "pan"}
+              onClick={() => onInteractionModeChange("pan")}
+            >
+              <Hand size={16} /> Pan
+            </button>
+          )}
          <button 
             className="toolbar-btn"
             title="Delete Selected or Toggle Eraser"

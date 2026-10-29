@@ -559,8 +559,12 @@ html,
 }
 
 .logical-surface {
-  background-image: radial-gradient(#cbd5e1 0.7px, transparent 0.7px);
-  background-size: 20px 20px;
+  background-image:
+    linear-gradient(to right, rgb(148 163 184 / 11%) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(148 163 184 / 11%) 1px, transparent 1px),
+    radial-gradient(#b8c2d0 0.8px, transparent 0.8px);
+  background-size: 20px 20px, 20px 20px, 100px 100px;
+  background-position: var(--grid-x, 0px) var(--grid-y, 0px);
 }
 
 .physical-surface {
@@ -578,6 +582,42 @@ html,
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.logical-content,
+.physical-content {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+}
+
+.network-device-node {
+  position: absolute;
+  z-index: 1;
+  width: 70px;
+  height: 68px;
+  padding: 5px 3px;
+  transform: translate(-50%, -50%);
+  cursor: default;
+}
+
+.network-device-node .device-icon {
+  margin-bottom: 5px;
+}
+
+.network-device-node .device-type {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.render-surface.pan-enabled {
+  cursor: grab;
+  touch-action: none;
+}
+
+.render-surface.pan-enabled.is-panning {
+  cursor: grabbing;
 }
 
 .floorplan-underlay {

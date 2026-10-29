@@ -13,15 +13,20 @@ export default function App() {
   const [viewController] = useState(
     () => new ViewController({ floorId: DEMO_FLOORS[0].id })
   );
+  const [interactionMode, setInteractionMode] = useState("select");
 
   return (
     <div className="app">
       <Topbar />
-      <Toolbar viewController={viewController} />
+      <Toolbar
+        viewController={viewController}
+        interactionMode={interactionMode}
+        onInteractionModeChange={setInteractionMode}
+      />
       <div className="main-layout">
         <ObjectLibrary/>
         <div className="workspace-column">
-          <Workspace viewController={viewController} />
+          <Workspace viewController={viewController} interactionMode={interactionMode} />
           <ConsoleSimulationLogs />
         </div>
         <div className="right-panel">

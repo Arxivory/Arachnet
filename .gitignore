@@ -26,3 +26,13 @@ yarn-error.log*
 *.pdf
 *.docx
 *.txt
+!/services/python/bim-ingestion/requirements.txt
+
+# Python venv
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# BIM ingestion artifacts
+/services/python/bim-ingestion/data/

@@ -24,6 +24,23 @@ def test_rejects_non_ifc_uploads(tmp_path) -> None:
     assert response.json()["detail"] == "Only .ifc files are supported."
 
 
+def test_allows_configured_frontend_origin(tmp_path) -> None:
+    client = TestClient(create_app(data_dir=tmp_path))
+
+    response = client.options(
+        "/api/v1/imports",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    assert "POST" in response.headers["access-control-allow-methods"]
+
+
 def test_rejects_empty_and_over_limit_uploads_without_leaving_staged_files(tmp_path) -> None:
     client = TestClient(create_app(data_dir=tmp_path, max_upload_bytes=8))
 

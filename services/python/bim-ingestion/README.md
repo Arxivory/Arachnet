@@ -30,6 +30,22 @@ test dependencies; `pyproject.toml` configures package discovery and pytest.
 The API listens on `http://127.0.0.1:8000` by default. Set
 `BIM_INGESTION_DATA_DIR` to change the local artifact directory, or
 `BIM_INGESTION_MAX_UPLOAD_BYTES` to change the default 512 MiB upload cap.
+`BIM_INGESTION_CORS_ORIGINS` accepts a comma-separated list of browser origins;
+by default it permits the local React development server and packaged Electron
+`file://` origin (`null`).
+
+The React application uses the shared client in `src/services/python-services.js`.
+Set `REACT_APP_BIM_INGESTION_API_URL` before starting/building the frontend to
+override its default `http://127.0.0.1:8000` service URL. Start this service
+separately with the venv command above; it is not started by the React/Electron
+development script.
+The application imports per-floor GLBs into the 3D and Interactive views and
+stores the wired graph with BIM floors in application state. Routing cables
+through imported floors is intentionally blocked until the extracted conduit
+graph and its uncalibrated capacity fields can be handled without substituting
+the demo routing network.
+The imported GLB is not yet projected into the Physical 2D mode; that view
+shows a notice instead of substituting the demo floor plan.
 Jobs are held in memory for this single-process prototype; source IFC files are
 deleted after processing, while generated artifacts remain under the data
 directory. A process restart clears job status; persistent job storage is a

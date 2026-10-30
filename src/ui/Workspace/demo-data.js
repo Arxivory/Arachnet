@@ -194,21 +194,28 @@ export function createDemoLinkModel(links = []) {
   return group;
 }
 
-export function createDemoFloorModel(floorId, devices = DEMO_DEVICE_SEEDS, links = []) {
-  const floor = DEMO_FLOORS.find((item) => item.id === floorId);
-  if (!floor) throw new Error(`Unknown demo floor: ${floorId}`);
+export function createDemoFloorModel(
+  floorId,
+  devices = DEMO_DEVICE_SEEDS,
+  links = [],
+  floors = DEMO_FLOORS
+) {
+  const floor = floors.find((item) => item.id === floorId);
+  if (!floor) throw new Error(`Unknown floor: ${floorId}`);
   const group = new THREE.Group();
-  group.name = `${floor.label} demo geometry`;
+  group.name = `${floor.label} network overlay`;
   group.position.z = floor.zMin;
 
-  addBox(group, 10, 6, 0, 20, 12, 0.15, 0xdbe4ec);
-  const wallColor = 0xcbd5e1;
-  addBox(group, 10, 0, 0, 20, 0.18, 3.2, wallColor);
-  addBox(group, 10, 12, 0, 20, 0.18, 3.2, wallColor);
-  addBox(group, 0, 6, 0, 0.18, 12, 3.2, wallColor);
-  addBox(group, 20, 6, 0, 0.18, 12, 3.2, wallColor);
-  addBox(group, 6, 4.1, 0, 0.12, 3.8, 3.2, wallColor);
-  addBox(group, 14, 7.8, 0, 0.12, 4.2, 3.2, wallColor);
+  if (DEMO_FLOORS.some((item) => item.id === floorId)) {
+    addBox(group, 10, 6, 0, 20, 12, 0.15, 0xdbe4ec);
+    const wallColor = 0xcbd5e1;
+    addBox(group, 10, 0, 0, 20, 0.18, 3.2, wallColor);
+    addBox(group, 10, 12, 0, 20, 0.18, 3.2, wallColor);
+    addBox(group, 0, 6, 0, 0.18, 12, 3.2, wallColor);
+    addBox(group, 20, 6, 0, 0.18, 12, 3.2, wallColor);
+    addBox(group, 6, 4.1, 0, 0.12, 3.8, 3.2, wallColor);
+    addBox(group, 14, 7.8, 0, 0.12, 4.2, 3.2, wallColor);
+  }
 
   for (const device of devices.filter((item) => item.floorId === floorId)) {
     const [x, y, z] = device.transform?.position ?? device.position;

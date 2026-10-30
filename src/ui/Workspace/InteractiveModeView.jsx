@@ -12,17 +12,34 @@ function disposeObject(object) {
   });
 }
 
-export default function InteractiveModeView({ devices, links = [], active = false }) {
+export default function InteractiveModeView({
+  devices,
+  links = [],
+  floors = DEMO_FLOORS,
+  importedModels = [],
+  active = false,
+}) {
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const worldRef = useRef(null);
   const controllerRef = useRef(null);
   const modelsRef = useRef([]);
   const linkModelRef = useRef(null);
+  const framedImportKeyRef = useRef("");
   const devicesRef = useRef(devices);
   const linksRef = useRef(links);
+  const floorsRef = useRef(floors);
+  const importedModelsRef = useRef(importedModels);
   devicesRef.current = devices;
   linksRef.current = links;
+  floorsRef.current = floors;
+  importedModelsRef.current = importedModels;
+  const floorGeometryKey = useMemo(() => JSON.stringify(
+    floors.map(({ id, zMin, zMax }) => ({ id, zMin, zMax }))
+  ), [floors]);
+  const importedGeometryKey = useMemo(() => JSON.stringify(
+    importedModels.map(({ id, floorId }) => ({ id, floorId }))
+  ), [importedModels]);
   const [renderError, setRenderError] = useState("");
   const deviceGeometryKey = useMemo(() => JSON.stringify(devices.map((device) => ({
     id: device.id,
@@ -51,7 +68,7 @@ export default function InteractiveModeView({ devices, links = [], active = fals
       scene.add(light);
 
       const world = new MultiFloorWorld(renderer, { scene });
-      world.setFloors(DEMO_FLOORS);
+      world.setFloors(floorsRef.current);
       world.camera.position.set(24, -25, 16);
       world.camera.lookAt(10, 6, 4);
 
@@ -102,12 +119,34 @@ export default function InteractiveModeView({ devices, links = [], active = fals
     const world = worldRef.current;
     if (!world) return;
     try {
-      const nextModels = DEMO_FLOORS.map((floor) =>
-        createDemoFloorModel(floor.id, devicesRef.current)
+      const currentFloors = floorsRef.current;
+      const currentImportedModels = importedModelsRef.current;
+      world.setFloors(currentFloors);
+      const nextModels = currentFloors.map((floor) =>
+        createDemoFloorModel(floor.id, devicesRef.current, [], currentFloors)
       );
       nextModels.forEach((model, index) => {
-        world.setFloorContent(DEMO_FLOORS[index].id, [model]);
+        const floorId = currentFloors[index].id;
+        const content = new THREE.Group();
+        for (const importedModel of currentImportedModels.filter((item) => item.floorId === floorId)) {
+          content.add(importedModel.object3D.clone(true));
+        }
+        content.add(model);
+        world.setFloorContent(floorId, [content]);
       });
+      if (importedGeometryKey && framedImportKeyRef.current !== importedGeometryKey) {
+        const bounds = new THREE.Box3().setFromObject(world.scene);
+        if (!bounds.isEmpty()) {
+          const center = bounds.getCenter(new THREE.Vector3());
+          const size = bounds.getSize(new THREE.Vector3());
+          const distance = Math.max(size.x, size.y, size.z, 10);
+          world.camera.position.copy(center).add(
+            new THREE.Vector3(distance, -distance, distance * 0.75)
+          );
+          world.camera.lookAt(center);
+        }
+        framedImportKeyRef.current = importedGeometryKey;
+      }
       modelsRef.current.forEach(disposeObject);
       modelsRef.current = nextModels;
       if (linkModelRef.current) world.scene.remove(linkModelRef.current);
@@ -118,7 +157,7 @@ export default function InteractiveModeView({ devices, links = [], active = fals
     } catch (error) {
       setRenderError(error.message);
     }
-  }, [deviceGeometryKey, linkGeometryKey]);
+  }, [deviceGeometryKey, floorGeometryKey, importedGeometryKey, linkGeometryKey]);
 
   useEffect(() => {
     if (!active || !worldRef.current || !controllerRef.current) return undefined;

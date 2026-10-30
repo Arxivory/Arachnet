@@ -1,6 +1,70 @@
 import { ApplicationStateManager } from "./application-state-manager";
 
 describe("ApplicationStateManager", () => {
+  test("stores imported BIM floors and maps graph nodes to application floor ids", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+
+    state.addBimImport({
+      id: "import-1",
+      sourceFilename: "building.ifc",
+      floors: [{
+        id: "bim-import-1-floor-guid",
+        sourceFloorId: "floor-guid",
+        label: "Level 1",
+        zMin: 0,
+        zMax: 3.2,
+      }],
+      graph: {
+        schema_version: "1.0.0",
+        coordinate_system: "ifc-world",
+        length_unit: "m",
+        nodes: [{
+          id: "junction-1",
+          node_type: "junction",
+          position_m: [1, 2, 3],
+          kind: "intersection",
+          floor_id: "floor-guid",
+          source_ifc_guids: [],
+        }],
+        edges: [],
+        diagnostics: [],
+      },
+    });
+
+    expect(state.getSnapshot().floors.at(-1)).toMatchObject({
+      id: "bim-import-1-floor-guid",
+      label: "Level 1",
+    });
+    expect(state.getSnapshot().bimImports[0].nodes[0]).toMatchObject({
+      id: "junction-1",
+      floor_id: "bim-import-1-floor-guid",
+    });
+  });
+
+  test("does not route imported-floor cables through the demo conduit network", () => {
+    const state = new ApplicationStateManager({ seedDemoTopology: false });
+    state.addBimImport({
+      id: "import-1",
+      sourceFilename: "building.ifc",
+      floors: [{
+        id: "bim-import-1-floor-guid",
+        sourceFloorId: "floor-guid",
+        label: "Level 1",
+        zMin: 0,
+        zMax: 3.2,
+      }],
+      graph: { nodes: [], edges: [] },
+    });
+    const first = state.addDeviceFromProfile("generic-desktop-pc", "bim-import-1-floor-guid");
+    const second = state.addDeviceFromProfile("generic-desktop-pc", "bim-import-1-floor-guid");
+
+    expect(() => state.connectEthernet(
+      [...first.ports.values()][0].id,
+      [...second.ports.values()][0].id
+    )).toThrow(/imported BIM floors/);
+    expect(state.getSnapshot().links).toHaveLength(0);
+  });
+
   test("seeds the workspace with real networking devices and links", () => {
     const state = new ApplicationStateManager();
     const snapshot = state.getSnapshot();

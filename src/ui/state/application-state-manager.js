@@ -98,6 +98,7 @@ export class ApplicationStateManager {
     this.floorById = new Map(this.floors.map((floor) => [floor.id, floor]));
     this.networkManager = new NetworkManager(new NetworkTopology());
     this.conduitRouter = new ConduitRouter(createDemoConduitNetwork(this.floors));
+    this.bimImports = [];
     this.placements = new Map();
     this.listeners = new Set();
     this.selectedDeviceId = null;
@@ -239,8 +240,16 @@ export class ApplicationStateManager {
     });
 
     this.snapshot = {
+      floors: this.floors.map((floor) => ({ ...floor })),
       devices,
       links,
+      bimImports: this.bimImports.map((bimImport) => ({
+        ...bimImport,
+        floors: bimImport.floors.map((floor) => ({ ...floor })),
+        nodes: bimImport.nodes.map((node) => ({ ...node, position_m: [...node.position_m] })),
+        edges: bimImport.edges.map((edge) => ({ ...edge })),
+        diagnostics: bimImport.diagnostics.map((diagnostic) => ({ ...diagnostic })),
+      })),
       placements: Object.fromEntries([...this.placements].map(([id, placement]) => [
         id,
         {
@@ -256,6 +265,50 @@ export class ApplicationStateManager {
       pingResults: this.pingResults.map((result) => ({ ...result })),
     };
     this.listeners.forEach((listener) => listener());
+  }
+
+  addBimImport({ id, sourceFilename, floors, graph, diagnostics = [] }) {
+    if (!id || this.bimImports.some((item) => item.id === id)) {
+      throw new Error(`Invalid or duplicate BIM import id: ${id}`);
+    }
+    if (!Array.isArray(floors) || !Array.isArray(graph?.nodes) || !Array.isArray(graph?.edges)) {
+      throw new TypeError("A BIM import requires floors and a spatial graph with nodes and edges.");
+    }
+    const floorIds = new Set(this.floorById.keys());
+    for (const floor of floors) {
+      if (!floor?.id || !floor?.sourceFloorId || !floor?.label ||
+        !Number.isFinite(floor.zMin) || !Number.isFinite(floor.zMax) ||
+        floor.zMax <= floor.zMin || floorIds.has(floor.id)) {
+        throw new TypeError(`Invalid or duplicate BIM floor: ${floor?.id ?? "(unknown)"}`);
+      }
+      floorIds.add(floor.id);
+    }
+    const floorIdBySourceId = new Map(floors.map((floor) => [floor.sourceFloorId, floor.id]));
+    const imported = {
+      id,
+      sourceFilename,
+      schemaVersion: graph.schema_version,
+      coordinateSystem: graph.coordinate_system,
+      lengthUnit: graph.length_unit,
+      floors: floors.map((floor) => ({ ...floor })),
+      nodes: graph.nodes.map((node) => ({
+        ...node,
+        position_m: [...node.position_m],
+        floor_id: floorIdBySourceId.get(node.floor_id) ?? null,
+      })),
+      edges: graph.edges.map((edge) => ({
+        ...edge,
+        floor_id: floorIdBySourceId.get(edge.floor_id) ?? null,
+      })),
+      diagnostics: [...diagnostics, ...(graph.diagnostics ?? [])].map((diagnostic) => ({ ...diagnostic })),
+    };
+    for (const floor of imported.floors) {
+      this.floors.push(floor);
+      this.floorById.set(floor.id, floor);
+    }
+    this.bimImports.push(imported);
+    this.publish();
+    return imported;
   }
 
   worldPosition(device) {
@@ -275,6 +328,14 @@ export class ApplicationStateManager {
   }) {
     const deviceA = this.networkManager.findDeviceForPort(portAId);
     const deviceB = this.networkManager.findDeviceForPort(portBId);
+    const importedFloorIds = new Set(this.bimImports.flatMap((bimImport) =>
+      bimImport.floors.map((floor) => floor.id)
+    ));
+    if (importedFloorIds.has(deviceA.floorId) || importedFloorIds.has(deviceB.floorId)) {
+      throw new Error(
+        "Cable routing on imported BIM floors is unavailable until their conduit graph is integrated."
+      );
+    }
     const area = cableAreaMm2(cableDiameterMm);
     const route = this.conduitRouter.route(
       this.worldPosition(deviceA),

@@ -1,21 +1,20 @@
 import { Undo2, Redo2 } from "lucide-react";
+import { useRef, useState } from "react";
 import {
   Network,
-  RefreshCw,
-  File,
   FileDown,
-  FilePlus,
   Save,
   MousePointer,
   Hand,
   Trash2,
   Copy,
   Building,
-  Play,
   LayoutGrid,
   Map,
   Box,
   Compass,
+  LoaderCircle,
+  X,
 } from "lucide-react";
 import { VIEW_MODES } from "../../core/rendering-engine";
 import { useViewState } from "../Workspace/useViewState";
@@ -31,17 +30,91 @@ export default function Toolbar({
   viewController,
   interactionMode = "select",
   onInteractionModeChange = () => {},
+  onImportBim = async () => ({}),
 }) {
   const viewState = useViewState(viewController);
+  const fileInputRef = useRef(null);
+  const importControllerRef = useRef(null);
+  const [importState, setImportState] = useState({ status: "idle", message: "" });
+
+  async function handleImportSelection(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const controller = new AbortController();
+    importControllerRef.current = controller;
+    setImportState({ status: "processing", message: `Uploading ${file.name}...`, progress: 0 });
+    try {
+      const summary = await onImportBim(file, {
+        signal: controller.signal,
+        onJobUpdate: (job) => setImportState({
+          status: "processing",
+          message: `${job.stage} - ${job.progress}%`,
+          progress: job.progress,
+        }),
+      });
+      setImportState({
+        status: "success",
+        message: `Imported ${summary.floorCount} floors - ${summary.nodeCount} junctions - ${summary.edgeCount} conduits${
+          summary.unassignedModelCount ? ` - ${summary.unassignedModelCount} unassigned models` : ""
+        }`,
+      });
+    } catch (error) {
+      setImportState({
+        status: controller.signal.aborted ? "idle" : "error",
+        message: controller.signal.aborted ? "Import canceled." : error.message,
+      });
+    } finally {
+      if (importControllerRef.current === controller) importControllerRef.current = null;
+    }
+  }
 
   return (
     <div className="toolbar">
       <div className="toolbar-group">
         <div className="toolbar-row">
-          <button className="toolbar-btn"><Building size={16} />Import BIM</button>
+          <button
+            className="toolbar-btn"
+            type="button"
+            disabled={importState.status === "processing"}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {importState.status === "processing"
+              ? <LoaderCircle className="bim-import-spinner" size={16} />
+              : <Building size={16} />}
+            Import BIM
+          </button>
+          <input
+            ref={fileInputRef}
+            className="bim-import-input"
+            type="file"
+            accept=".ifc"
+            aria-label="Select IFC file"
+            onChange={handleImportSelection}
+          />
+          {importState.status === "processing" && (
+            <button
+              className="toolbar-btn-icon"
+              type="button"
+              title="Cancel BIM import"
+              aria-label="Cancel BIM import"
+              onClick={() => importControllerRef.current?.abort()}
+            >
+              <X size={15} />
+            </button>
+          )}
           <button className="toolbar-btn"><FileDown size={16} />Export Layout</button>
           <button className="toolbar-btn"><Save size={16} /> Save</button>
         </div>
+        {importState.message && (
+          <span
+            className={`bim-import-status${importState.status === "error" ? " error" : ""}`}
+            role={importState.status === "error" ? "alert" : "status"}
+            title={importState.message}
+          >
+            {importState.message}
+          </span>
+        )}
         <span className="toolbar-label">Files</span>
       </div>
 

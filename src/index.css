@@ -99,6 +99,47 @@ html,
   margin-top: 4px;
 }
 
+.bim-import-input {
+  display: none;
+}
+
+.bim-import-status {
+  max-width: 290px;
+  overflow: hidden;
+  color: #475569;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bim-import-status.error {
+  color: #b91c1c;
+}
+
+.bim-import-spinner {
+  animation: bim-import-spin 1s linear infinite;
+}
+
+.bim-floorplan-notice {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  margin: 0;
+  padding: 6px 9px;
+  border: 1px solid #d5dde6;
+  border-radius: 5px;
+  background: #ffffffeb;
+  color: #475569;
+  font-size: 11px;
+}
+
+@keyframes bim-import-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .toolbar-divider {
   border-left: 1px solid #d1d1d1;
   height: 40px;

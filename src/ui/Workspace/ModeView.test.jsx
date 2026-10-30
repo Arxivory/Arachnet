@@ -81,6 +81,19 @@ test("renders Physical nodes as library-style device tiles and supports pan mode
   });
 });
 
+test("does not display the demo floor plan for an imported BIM floor", () => {
+  const { container } = render(
+    <PhysicalModeView
+      floor={{ label: "Imported Level 1", isBimImported: true }}
+      devices={[]}
+      links={[]}
+    />
+  );
+
+  expect(container.querySelector(".floorplan-underlay")).not.toBeInTheDocument();
+  expect(screen.getByText(/IFC floor-plan projection is not available yet/)).toBeInTheDocument();
+});
+
 test("connects devices with the Logical cable tool by selecting free ports", () => {
     const state = new ApplicationStateManager({ seedDemoTopology: false });
     const first = state.addDeviceFromProfile("generic-desktop-pc", "floor-1");

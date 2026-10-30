@@ -116,12 +116,19 @@ export default function PhysicalModeView({
       onDrop={handleDrop}
     >
       <div className="physical-content" style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}>
-        <svg className="floorplan-underlay" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
-          <rect x="48" y="46" width="904" height="508" rx="3" />
-          <path d="M330 46V230H48M330 230H580V46M580 230V390H952M48 390H330V554M580 390V554" />
-          <path d="M200 46V138M460 230V390M790 46V230M790 390V554" />
-        </svg>
+        {!floor.isBimImported && (
+          <svg className="floorplan-underlay" viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true">
+            <rect x="48" y="46" width="904" height="508" rx="3" />
+            <path d="M330 46V230H48M330 230H580V46M580 230V390H952M48 390H330V554M580 390V554" />
+            <path d="M200 46V138M460 230V390M790 46V230M790 390V554" />
+          </svg>
+        )}
         <canvas ref={canvasRef} className="render-canvas" aria-label={`${floor.label} physical network plan`} />
+        {floor.isBimImported && (
+          <p className="bim-floorplan-notice" role="status">
+            IFC floor-plan projection is not available yet. View the imported geometry in 3D.
+          </p>
+        )}
         {positionedDevices.map(({ device, x, y }) => (
           <DeviceNode
             key={device.id}

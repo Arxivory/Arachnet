@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import Topbar from "./Topbar";
 import Toolbar from "./Toolbar/Toolbar";
 import ObjectLibrary from "./ObjectLibrary";
@@ -6,11 +7,18 @@ import Workspace from "./Workspace/Workspace";
 import HierarchyPanel from "./HierarchyPanel";
 import PropertiesPanel from "./PropertiesPanel";
 import ConsoleSimulationLogs from "./logs/ConsoleSimulationLogs";
-import { ViewController } from "../core/rendering-engine";
+import { VIEW_MODES, ViewController } from "../core/rendering-engine";
 import { DEMO_FLOORS } from "./Workspace/demo-data";
 import { ApplicationStateManager } from "./state/application-state-manager";
 import useApplicationState from "./state/useApplicationState";
 import { useViewState } from "./Workspace/useViewState";
+import { pythonServices } from "../services/python-services";
+
+function parseGlb(data) {
+  return new Promise((resolve, reject) => {
+    new GLTFLoader().parse(data, "", resolve, reject);
+  });
+}
 
 export default function App() {
   const [stateManager] = useState(() => new ApplicationStateManager());
@@ -26,6 +34,59 @@ export default function App() {
     ({ id }) => id === applicationState.selectedDeviceId
   ) ?? null;
   const [interactionMode, setInteractionMode] = useState("select");
+  const [importedModels, setImportedModels] = useState([]);
+
+  async function importBim(file, { signal, onJobUpdate } = {}) {
+    const result = await pythonServices.bimIngestion.uploadIfc(file, { signal, onJobUpdate });
+    const sourceFloors = [...(result.job.metadata.floors ?? result.manifest.floors ?? [])];
+    if (result.models.some((model) => !model.floor_id)) {
+      sourceFloors.push({
+        id: "__unassigned__",
+        name: "Unassigned geometry",
+        elevation_m: 0,
+      });
+    }
+    const floorIdBySourceId = new Map(sourceFloors.map((floor) => [
+      floor.id,
+      `bim-${result.job.id}-${floor.id}`,
+    ]));
+    const importedFloors = sourceFloors.map((floor, index) => {
+      const zMin = floor.elevation_m ?? index * 3.2;
+      return {
+        id: floorIdBySourceId.get(floor.id),
+        sourceFloorId: floor.id,
+        label: floor.name || `Floor ${index + 1}`,
+        zMin,
+        zMax: zMin + 3.2,
+        isBimImported: true,
+      };
+    });
+    const loadedModels = await Promise.all(result.models.map(async (model) => {
+      const gltf = await parseGlb(model.data);
+      return {
+        id: `${result.job.id}-${model.filename}`,
+        floorId: floorIdBySourceId.get(model.floor_id ?? "__unassigned__") ?? null,
+        object3D: gltf.scene,
+      };
+    }));
+    stateManager.addBimImport({
+      id: result.job.id,
+      sourceFilename: result.job.source_filename,
+      floors: importedFloors,
+      graph: result.graph,
+      diagnostics: result.job.diagnostics,
+    });
+    setImportedModels((current) => [...current, ...loadedModels]);
+    if (importedFloors.length > 0) {
+      viewController.setMode(VIEW_MODES.CAD, { floorId: importedFloors[0].id });
+    }
+    return {
+      floorCount: importedFloors.length,
+      nodeCount: result.graph.nodes.length,
+      edgeCount: result.graph.edges.length,
+      unassignedModelCount: result.models.filter((model) => !model.floor_id).length,
+    };
+  }
 
   return (
     <div className="app">
@@ -34,15 +95,18 @@ export default function App() {
         viewController={viewController}
         interactionMode={interactionMode}
         onInteractionModeChange={setInteractionMode}
+        onImportBim={importBim}
       />
       <div className="main-layout">
         <ObjectLibrary/>
         <div className="workspace-column">
           <Workspace
             viewController={viewController}
+            floors={applicationState.floors}
             interactionMode={interactionMode}
             devices={applicationState.devices}
             links={applicationState.links}
+            importedModels={importedModels}
             placements={applicationState.placements}
             selectedDeviceId={applicationState.selectedDeviceId}
             onSelectDevice={(deviceId) => stateManager.selectDevice(deviceId)}
@@ -61,7 +125,7 @@ export default function App() {
         <div className="right-panel">
           <HierarchyPanel
             devices={visibleDevices}
-            floors={stateManager.floors}
+            floors={applicationState.floors}
             groupByFloor={viewState.mode === "interactive"}
             selectedDeviceId={applicationState.selectedDeviceId}
             onSelectDevice={(deviceId) => stateManager.selectDevice(deviceId)}

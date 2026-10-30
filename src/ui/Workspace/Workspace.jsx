@@ -27,10 +27,12 @@ export default function Workspace({
   onConnectEthernet,
   onDisconnectEthernet,
   onSetLinkStatus,
+  floors = DEMO_FLOORS,
+  importedModels = [],
 }) {
   const viewState = useViewState(viewController);
   const [crossFloorDeviceId, setCrossFloorDeviceId] = useState(null);
-  const floor = DEMO_FLOORS.find(({ id }) => id === viewState.floorId) ?? DEMO_FLOORS[0];
+  const floor = floors.find(({ id }) => id === viewState.floorId) ?? floors[0];
   const floorDevices = useMemo(
     () => devices.filter((device) => device.floorId === floor.id),
     [devices, floor.id]
@@ -52,7 +54,7 @@ export default function Workspace({
 
       for (const [local, remote] of [[endpointA, endpointB], [endpointB, endpointA]]) {
         if (local.floorId !== floor.id) continue;
-        const remoteFloor = DEMO_FLOORS.find(({ id }) => id === remote.floorId);
+        const remoteFloor = floors.find(({ id }) => id === remote.floorId);
         if (!remoteFloor) continue;
         connections[local.deviceId] ??= [];
         connections[local.deviceId].push({
@@ -67,7 +69,7 @@ export default function Workspace({
       }
     }
     return connections;
-  }, [floor.id, links]);
+  }, [floor.id, floors, links]);
   const crossFloorDevice = devices.find(({ id }) => id === crossFloorDeviceId);
   const selectedCrossFloorConnections = crossFloorConnections[crossFloorDeviceId] ?? [];
 
@@ -116,6 +118,8 @@ export default function Workspace({
             floor={floor}
             devices={floorDevices}
             links={links}
+            floors={floors}
+            importedModels={importedModels}
             active={viewState.mode === VIEW_MODES.CAD}
           />
         </div>
@@ -123,6 +127,8 @@ export default function Workspace({
           <InteractiveModeView
             devices={devices}
             links={links}
+            floors={floors}
+            importedModels={importedModels}
             active={viewState.mode === VIEW_MODES.INTERACTIVE}
           />
         </div>
@@ -174,7 +180,7 @@ export default function Workspace({
       </section>
       {viewState.floorBased && (
         <FloorNavigator
-          floors={DEMO_FLOORS}
+          floors={floors}
           activeFloorId={floor.id}
           onSelect={(floorId) => viewController.setFloor(floorId)}
         />

@@ -6,6 +6,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 from .jobs import InMemoryJobStore, JobNotFoundError
@@ -30,6 +31,20 @@ def create_app(
         title="ArachNet BIM Ingestion",
         version="0.1.0",
         description="Local IFC ingestion into floor GLBs and wired spatial graphs.",
+    )
+    cors_origins = [
+        origin.strip()
+        for origin in os.environ.get(
+            "BIM_INGESTION_CORS_ORIGINS",
+            "http://localhost:3000,http://127.0.0.1:3000,null",
+        ).split(",")
+        if origin.strip()
+    ]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_methods=["GET", "POST"],
+        allow_headers=["Content-Type"],
     )
     app.state.data_dir = root
     app.state.jobs = jobs

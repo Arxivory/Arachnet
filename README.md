@@ -8,54 +8,6 @@ By applying Relational Graph Convolutional Networks (R-GCN) and Heterogeneous Gr
 
 ---
 
-## Wired Connectivity and Route Planning
-
-The current UI uses `NetworkManager` for physical Ethernet port occupancy,
-speed/duplex negotiation, interface line state, and link up/down behavior. A
-connection stores two independent route measurements:
-
-- Logical mode draws topology edges in abstract graph coordinates. Physical
-  mode draws the flat, straight-line floorplan baseline. The demo floorplan is
-  calibrated at 50 pixels per meter; imported plans need their own scale.
-- CAD and Interactive modes draw the 3D route from a structural junction graph.
-  The current deterministic A* baseline snaps endpoints to their nearest
-  junction and routes across tray/conduit/riser segments. It tracks 3D length
-  and reserves conduit cross-section against the 40% fill ceiling.
-
-The structural graph is demo fixture data, not extracted BIM geometry. The
-route is a deterministic research baseline, not a trained GNN result. BIM
-junction extraction, project-specific plan calibration, and GNN inference are
-future integration steps. Optical links use matching fiber ports and are
-excluded from the copper 100-meter channel check.
-
-## Device Configuration and Connectivity Simulation
-
-The Properties panel's **Configure device** dialog writes settings to the same
-networking devices used by packet forwarding:
-
-- Ethernet interfaces accept IPv4 CIDR addresses and an on-link default
-  gateway. Duplicate addresses and off-link gateways are rejected.
-- Switches accept VLAN definitions, access/trunk port assignments, native and
-  allowed VLANs, and an STP bridge priority. VLAN rules are enforced by the
-  802.1Q switching engine; bridge priority participates in root elections when
-  BPDUs are received.
-- Routers accept static routes, which are installed in the RIB/FIB. Connected
-  routes continue to be derived from operational addressed interfaces.
-- The ICMP ping tool sends echo requests through the configured interfaces,
-  links, VLANs, ARP, and router forwarding pipeline. It reports echo replies,
-  router-generated time-exceeded/destination-unreachable responses, source
-  interface/no-route failures, or timeouts when no response returns.
-
-Ping is a synchronous deterministic simulation: a timeout means the traversal
-produced no ICMP response, not that a configurable wall-clock timer expired.
-The displayed reply time measures local emulator execution and is not modeled
-wire latency. STP priority is configurable, but periodic BPDU generation and
-timer-driven STP convergence are not yet simulated. Other legacy dialogs
-(NAT, OSPF, ACL, DHCP, and management services) are not shown as active
-configuration because those behaviors are not implemented in the L2/L3 engine.
-
----
-
 ## Thesis Core Concepts & Innovations
 
 ArachNet moves beyond basic CAD-style network editing by introducing a spatial deep learning pipeline:
@@ -155,3 +107,55 @@ Originally NetArch from our Software Engineering Course, now designed and develo
 
 - Theoretical Framework: Design Science Research Methodology (DSRM), Heterogeneous Spatial Graph Theory, State-Space Search Complexity, Non-Convex Multi-Objective Optimization.
 - Statistical Validation: Evaluated using the Non-Parametric Wilcoxon Signed-Rank Test ($\alpha = 0.05$).
+
+---
+
+## Current Components
+
+### Wired Connectivity and Route Planning
+
+The current UI uses `NetworkManager` for physical Ethernet port occupancy,
+speed/duplex negotiation, interface line state, and link up/down behavior. A
+connection stores two independent route measurements:
+
+- Logical mode draws topology edges in abstract graph coordinates. Physical
+  mode draws the flat, straight-line floorplan baseline. The demo floorplan is
+  calibrated at 50 pixels per meter; imported plans need their own scale.
+- CAD and Interactive modes draw the 3D route from a structural junction graph.
+  The current deterministic A\* baseline snaps endpoints to their nearest
+  junction and routes across tray/conduit/riser segments. It tracks 3D length
+  and reserves conduit cross-section against the 40% fill ceiling.
+
+The structural graph is demo fixture data, not extracted BIM geometry. The
+route is a deterministic research baseline, not a trained GNN result. BIM
+junction extraction, project-specific plan calibration, and GNN inference are
+future integration steps. Optical links use matching fiber ports and are
+excluded from the copper 100-meter channel check.
+
+### Device Configuration and Connectivity Simulation
+
+The Properties panel's **Configure device** dialog writes settings to the same
+networking devices used by packet forwarding:
+
+- Ethernet interfaces accept IPv4 CIDR addresses and an on-link default
+  gateway. Duplicate addresses and off-link gateways are rejected.
+- Switches accept VLAN definitions, access/trunk port assignments, native and
+  allowed VLANs, and an STP bridge priority. VLAN rules are enforced by the
+  802.1Q switching engine; bridge priority participates in root elections when
+  BPDUs are received.
+- Routers accept static routes, which are installed in the RIB/FIB. Connected
+  routes continue to be derived from operational addressed interfaces.
+- The ICMP ping tool sends echo requests through the configured interfaces,
+  links, VLANs, ARP, and router forwarding pipeline. It reports echo replies,
+  router-generated time-exceeded/destination-unreachable responses, source
+  interface/no-route failures, or timeouts when no response returns.
+
+Ping is a synchronous deterministic simulation: a timeout means the traversal
+produced no ICMP response, not that a configurable wall-clock timer expired.
+The displayed reply time measures local emulator execution and is not modeled
+wire latency. STP priority is configurable, but periodic BPDU generation and
+timer-driven STP convergence are not yet simulated. Other legacy dialogs
+(NAT, OSPF, ACL, DHCP, and management services) are not shown as active
+configuration because those behaviors are not implemented in the L2/L3 engine.
+
+---
